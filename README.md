@@ -37,7 +37,7 @@
 ## Thanks To
 ```bash
 Thanks To : 
-- WhiskeySocket ( Baileys )
+- fizzxydev ( Baileys )
 - Alfi ( recode )
 - Fallzx ( sepuh )
 - simplebot ( base )
