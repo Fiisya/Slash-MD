@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="[https://files.catbox.moe/gkrtt5.jpg](https://raw.githubusercontent.com/Fiisya/uploads/main/uploads/1748669538497.jpeg)" width="100%" style="margin-left: auto;margin-right: auto;display: block;">
+    <img src="https://raw.githubusercontent.com/Fiisya/uploads/main/uploads/1748669538497.jpeg" width="100%" style="margin-left: auto;margin-right: auto;display: block;">
 </p>
 <h1 align="center">SlashMD</h1>
 
