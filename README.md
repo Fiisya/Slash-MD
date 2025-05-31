@@ -16,7 +16,7 @@
 ```
 ### A Little About the Bot
 - ✔️ | **Simple** 
-- ✔️ | **No Button** 
+- ✔️ | **Support Button** 
 - ✔️ | **Multi Device** 
 ---------
 ### Features It Has
@@ -40,5 +40,5 @@ Thanks To :
 - fizzxydev ( Baileys )
 - Alfi ( recode )
 - Fallzx ( sepuh )
-- simplebot ( base )
+- skyzo ( base )
 - And All Who Contributed In The Development Of This Script 
