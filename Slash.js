@@ -12,12 +12,16 @@ const teksjpm = fs.readFileSync("./list/teksjpm.js").toString()
 const isPremium = premium.includes(m.sender)
 
 //========= CONFIGURASI ==========//
-const budy = (typeof m.text == 'string' ? m.text : '')
+const budy = (m && typeof m.text === 'string') ? m.text : '';
 const isOwner = owner2.includes(m.sender) ? true : m.sender == owner+"@s.whatsapp.net" ? true : m.fromMe ? true : false
-const prefix = /^[°zZ#$@+,.?=''():√%!¢£¥€π¤ΠΦ&><™©®Δ^βα¦|/\\©^]/.test(body) ? body.match(/^[°zZ#$@+,.?=''():√%¢£¥€π¤ΠΦ&><!™©®Δ^βα¦|/\\©^]/gi) : isOwner && !m.isBaileys ? '' : '.'
-const isCmd = body.startsWith(prefix)
-const command = isCmd ? body.slice(prefix.length).trim().split(' ').shift().toLowerCase() : ""
-const cmd = prefix + command
+const prefix = /^[°zZ#$@+,.?=''():√%!¢£¥€π¤ΠΦ&><™©®Δ^βα¦|/\\©^]/.test(budy)
+    ? (budy.match(/^[°zZ#$@+,.?=''():√%¢£¥€π¤ΠΦ&><!™©®Δ^βα¦|/\\©^]/gi)?.[0] || '')
+    : ((isOwner && !m.isBaileys) ? '' : '.');
+const isCmd = budy.startsWith(prefix);
+const command = isCmd
+    ? budy.slice(prefix.length).trim().split(' ').shift().toLowerCase()
+    : '';
+const cmd = prefix + command;
 const from = m.key.remoteJid
 const args = body.trim().split(/ +/).slice(1)
 var crypto = require("crypto")
@@ -2845,7 +2849,37 @@ case 'tourl2': {
     break;
 }
 
+case'ceklinkgc':{
+    const iidgc = budy.match('@g.us')
+    if(!iidgc)return m.reply(`Sertakan IdGroup Dengan Benar\nExample : ${prefix + command} 120.......@g.us`)
+    try{
+    const gc = "https://chat.whatsapp.com/" + await Slash.groupInviteCode(text)
+await m.reply(`${gc}`)
+        }catch(e){
+            m.reply('IdGroup Tidak Valid!!')
+        }
+}
+break
 
+case "rvo": case "readviewonce": {
+if (!m.quoted) return m.reply(example("dengan reply pesannya"))
+let msg = m.quoted.fakeObj.message
+    let type = Object.keys(msg)[0]
+if (!msg[type].viewOnce) return m.reply("Pesan itu bukan viewonce!")
+let media = await downloadContentFromMessage(msg[type], type == 'imageMessage' ? 'image' : type == 'videoMessage' ? 'video' : 'audio')
+    let buffer = Buffer.from([])
+    for await (const chunk of media) {
+        buffer = Buffer.concat([buffer, chunk])
+    }
+    if (/video/.test(type)) {
+        return Slash.sendMessage(m.chat, {video: buffer, caption: "Done ✅"}, {quoted: m})
+    } else if (/image/.test(type)) {
+        return Slash.sendMessage(m.chat, {image: buffer, caption: "Done ✅"}, {quoted: m})
+    } else if (/audio/.test(type)) {
+        return Slash.sendMessage(m.chat, {audio: buffer, mimetype: "audio/mpeg", ptt: true}, {quoted: m})
+    } 
+}
+break
 
 
 	
