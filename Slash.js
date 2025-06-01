@@ -2983,7 +2983,7 @@ case 'ocr': {
     const FormData = require('form-data');
     const fs = require('fs');
 
-    const genAI = new GoogleGenerativeAI('AIzaSyA6M9JsIsaP76MZm2NZheWQkPIDJ01Koic');
+    const genAI = new GoogleGenerativeAI(''); // isi api gemini
     const model = genAI.getGenerativeModel({
         model: 'gemini-1.5-flash'
     });
