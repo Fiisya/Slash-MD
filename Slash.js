@@ -392,7 +392,8 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 ▢ .setppgc
 ▢ .promote
 ▢ .demote
-▢ .welcome
+▢ .setwelcome
+▢ .setbye
 
 — *Fun Menu*
 ▢ .cekkhodam
@@ -408,12 +409,14 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 ▢ .translate
 ▢ .nulis
 ▢ .cuaca
-▢ .qrcode ( maintenance )
+▢ .qrcode
 ▢ .vccgenerator
 ▢ .removebg 
 ▢ .get
 ▢ .tourl
 ▢ .tourl2
+▢ .ssweb
+▢ .ocr
 
 — *Sticker Menu*
 ▢ .brat
@@ -441,7 +444,7 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 
 — *Ai Menu*
 ▢ .ai
-▢ .txt2img  ( maintenance )
+▢ .txt2img
 
 — *Download Menu*
 ▢ .tiktok
@@ -2905,6 +2908,181 @@ let media = await downloadContentFromMessage(msg[type], type == 'imageMessage' ?
 }
 break
 
+case "backupsc":{
+if (!isOwner) return m.reply(msg.owner)
+if (!m.isBaileys) return m.reply("ngapain bang")
+m.reply(msg.wait)
+ const { execSync } = require("child_process");
+ const ls = (await execSync("ls"))
+.toString()
+.split("\n")
+.filter(
+ (pe) =>
+pe != "node_modules" &&
+pe != ".npm" &&
+pe != ""
+);
+ const exec = await execSync(`zip -r New.zip ${ls.join(" ")}`);
+ await Slash.sendMessage(m?.chat,
+{
+ document: await fs.readFileSync("./New.zip"),
+ mimetype: "application/zip",
+ fileName: `${global.namabot2}.zip`,
+},
+{ quoted: m }
+ );
+ await execSync("rm -rf New.zip");
+}
+break
+
+case 'txt2img': {
+    if (!text) return m.reply("Masukkan prompt gambar.")
+
+    m.reply("Sedang memproses gambar, mohon tunggu...")
+    
+    async function generateImage(prompt) {
+    try {
+        let {
+            data
+        } = await axios.post("https://api-preview.chatgot.io/api/v1/deepimg/flux-1-dev", {
+            prompt,
+            size: "1024x1024",
+            device_id: `dev-${Math.floor(Math.random() * 1000000)}`
+        }, {
+            headers: {
+                "Content-Type": "application/json",
+                Origin: "https://deepimg.ai",
+                Referer: "https://deepimg.ai/"
+            }
+        })
+        return data?.data?.images?.[0]?.url || null
+    } catch (err) {
+        console.error(err.response ? err.response.data : err.message)
+        return null
+    }
+}
+
+    let imageUrl = await generateImage(text)
+    if (!imageUrl) return m.reply("gagal membuat gambarnya coba ganti prompt nya")
+
+    await Slash.sendMessage(m.chat, {
+        image: {
+            url: imageUrl
+        },
+        caption: `Gambar berhasil dibuat!\n Dengan Prompt: ${text}`
+    }, {
+        quoted: m
+    })
+}
+break
+
+case 'ocr': {
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const cheerio = require('cheerio');
+    const fetch = require('node-fetch');
+    const FormData = require('form-data');
+    const fs = require('fs');
+
+    const genAI = new GoogleGenerativeAI('AIzaSyA6M9JsIsaP76MZm2NZheWQkPIDJ01Koic');
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-1.5-flash'
+    });
+
+    async function alfixdRaw(fileBuffer) {
+        try {
+            const form = new FormData();
+            form.append('file', fileBuffer, {
+                filename: 'upload.jpg'
+            });
+
+            const response = await fetch('https://upfilegh.alfiisyll.biz.id/upload', {
+                method: 'POST',
+                body: form,
+                headers: form.getHeaders()
+            });
+
+            if (!response.ok) {
+                throw new Error(`Server error: ${response.status}`);
+            }
+
+            const html = await response.text();
+            const $ = cheerio.load(html);
+            const rawUrl = $('#rawUrlLink').attr('href');
+            if (!rawUrl) throw new Error('Gagal mengambil URL gambar mentah.');
+            return rawUrl;
+        } catch (error) {
+            console.error('[alfixdRaw] Upload error:', error.message);
+            return null;
+        }
+    }
+
+    async function generateGeminiOCR(base64Data) {
+        const prompt = 'OCR gambar ini tanpa kata-kata tambahan, hanya teks dari gambar.';
+        const parts = [
+            { text: prompt },
+            {
+                inlineData: {
+                    mimeType: 'image/jpeg',
+                    data: base64Data
+                }
+            }
+        ];
+        const result = await model.generateContent({
+            contents: [{ parts }]
+        });
+        return result.response.text();
+    }
+
+    try {
+        const qmsg = m.quoted ? m.quoted : m;
+        const mime = (qmsg.mimetype || qmsg.message?.imageMessage?.mimetype || qmsg.message?.videoMessage?.mimetype) || '';
+
+        if (!/image/.test(mime) || /webp/.test(mime)) {
+            return m.reply('Maaf, kirim atau reply gambar untuk OCR!');
+        }
+
+        const mediaPath = await Slash.downloadAndSaveMediaMessage(qmsg);
+
+        // Baca file secara benar
+        const imageBuffer = fs.readFileSync(mediaPath);
+        const base64Data = imageBuffer.toString('base64');
+
+        let extractedText;
+        try {
+            extractedText = await generateGeminiOCR(base64Data);
+        } catch (err) {
+            console.error('[Gemini inlineData error]', err.message);
+            extractedText = null;
+        }
+
+        // Kalau inlineData gagal, upload ke alfixdRaw (tapi tetap pakai base64)
+        if (!extractedText || !extractedText.trim()) {
+            const rawUrl = await alfixdRaw(imageBuffer);
+            if (!rawUrl) return m.reply('❌ Upload ke server gagal.');
+
+            try {
+                // Download lagi dari rawUrl supaya bisa inlineData
+                const res = await fetch(rawUrl);
+                if (!res.ok) throw new Error('Gagal mengunduh gambar dari rawUrl.');
+                const fallbackBuffer = await res.buffer();
+                const fallbackBase64 = fallbackBuffer.toString('base64');
+                extractedText = await generateGeminiOCR(fallbackBase64);
+            } catch (err) {
+                console.error('[Gemini fallback error]', err.message);
+            }
+        }
+
+        if (extractedText && extractedText.trim()) {
+            return m.reply(extractedText.trim());
+        } else {
+            return m.reply('❌ Tidak dapat mendeteksi teks pada gambar.');
+        }
+    } catch (e) {
+        console.error('[OCR Error]:', e);
+        return m.reply(`❌ Maaf, terjadi kesalahan saat melakukan OCR.\n\n${e.message || e}`);
+    }
+}
+break;
 
 	
 default:
