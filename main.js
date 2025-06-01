@@ -1,7 +1,6 @@
 require("./all/global")
 const func = require("./all/place")
 const readline = require("readline")
-const welcome = JSON.parse(fs.readFileSync("./all/database/welcome.json"))
 const { sleep } = require("./all/myfunc.js")  
 const usePairingCode = true
 const question = (text) => {
@@ -172,38 +171,90 @@ console.log(err)
 })
 
 Slash.ev.on('group-participants.update', async (anu) => {
-if (!welcome.includes(anu.id)) return
-let botNumber = await Slash.decodeJid(Slash.user.id)
-if (anu.participants.includes(botNumber)) return
-try {
-let metadata = await Slash.groupMetadata(anu.id)
-let namagc = metadata.subject
-let participants = anu.participants
-for (let num of participants) {
-let check = anu.author !== num && anu.author.length > 1
-let tag = check ? [anu.author, num] : [num]
-try {
-ppuser = await Slash.profilePictureUrl(num, 'image')
-} catch {
-ppuser = 'https://telegra.ph/file/d1688cff04f816713f8aa.jpg'
-}
-if (anu.action == 'add') {
-Slash.sendMessage(anu.id, {text: check ? `@${anu.author.split("@")[0]} Telah Menambahkan @${num.split("@")[0]} Ke Dalam Grup Ini` : `Hallo Kak @${num.split("@")[0]} Selamat Datang Di *${namagc}*`, 
-contextInfo: {mentionedJid: [...tag], externalAdReply: { thumbnailUrl: ppuser, title: '© Welcome Message', body: '', renderLargerThumbnail: true, sourceUrl: linkgc, mediaType: 1}}})
-} else if (anu.action == 'remove') { 
-Slash.sendMessage(anu.id, {text: check ? `@${anu.author.split("@")[0]} Telah Mengeluarkan @${num.split("@")[0]} Dari Grup Ini` : `@${num.split("@")[0]} Telah Keluar Dari Grup Ini`, 
-contextInfo: {mentionedJid: [...tag], externalAdReply: { thumbnailUrl: ppuser, title: '© Leaving Message', body: '', renderLargerThumbnail: true, sourceUrl: linkgc, mediaType: 1}}})
-} else if (anu.action == "promote") {
-Slash.sendMessage(anu.id, {text: `@${anu.author.split("@")[0]} Telah Menjadikan @${num.split("@")[0]} Sebagai Admin Grup Ini`, 
-contextInfo: {mentionedJid: [...tag], externalAdReply: { thumbnailUrl: ppuser, title: '© Promote Message', body: '', renderLargerThumbnail: true, sourceUrl: linkgc, mediaType: 1}}})
-} else if (anu.action == "demote") {
-Slash.sendMessage(anu.id, {text: `@${anu.author.split("@")[0]} Telah Memberhentikan @${num.split("@")[0]} Sebagai Admin Grup Ini`, 
-contextInfo: {mentionedJid: [...tag], externalAdReply: { thumbnailUrl: ppuser, title: '© Demote Message', body: '', renderLargerThumbnail: true, sourceUrl: linkgc, mediaType: 1}}})
-}
-}
-} catch (err) {
-console.log(err)
-}})
+  console.log("Group event:", anu);
+  console.log("Welcome/Bye status:", global.welcome);
+
+  // Cek apakah fitur welcome/bye aktif
+  if (!global.welcome) {
+    console.log("Welcome/Bye disabled, skipping...");
+    return;
+  }
+
+  // Hanya proses aksi 'add' atau 'remove'
+  if (anu.action !== 'add' && anu.action !== 'remove') {
+    console.log("Not an 'add' or 'remove' action, skipping...");
+    return;
+  }
+
+  let botNumber = await Slash.decodeJid(Slash.user.id);
+  console.log("Bot number:", botNumber);
+  if (anu.participants.includes(botNumber)) {
+    console.log("Bot is participant, skipping...");
+    return;
+  }
+
+  try {
+    let metadata = await Slash.groupMetadata(anu.id);
+    let namagc = metadata.subject;
+    let desc = metadata.desc || 'Tidak ada deskripsi grup';
+    let participants = anu.participants;
+    console.log("Group metadata:", metadata);
+
+    for (let num of participants) {
+      console.log("Processing participant:", num);
+      try {
+        ppuser = await Slash.profilePictureUrl(num, 'image');
+      } catch {
+        ppuser = 'https://telegra.ph/file/d1688cff04f816713f8aa.jpg';
+        console.log("Failed to get profile picture for", num, "using default");
+      }
+
+      console.log("Profile picture URL:", ppuser);
+      let message = '';
+      let title = '';
+
+      if (anu.action == 'add') {
+        // Cek custom welcome message, fallback ke default
+        let customWelcome = global.db.data.chats[anu.id]?.welcomeMessage || 
+          `Hallo Kak @${num.split("@")[0]} Selamat Datang Di *${namagc}*`;
+        message = customWelcome
+          .replace(/@user/g, `@${num.split("@")[0]}`)
+          .replace(/@subject/g, namagc)
+          .replace(/@desc/g, desc);
+        title = '© Welcome Message';
+      } else if (anu.action == 'remove') {
+        // Cek custom bye message, fallback ke default
+        let customBye = global.db.data.chats[anu.id]?.byeMessage || 
+          `@${num.split("@")[0]} Telah Keluar Dari *${namagc}*`;
+        message = customBye
+          .replace(/@user/g, `@${num.split("@")[0]}`)
+          .replace(/@subject/g, namagc)
+          .replace(/@desc/g, desc);
+        title = '© Bye Message';
+      }
+
+      if (message) {
+        console.log("Sending message to:", anu.id, "for participant:", num);
+        await Slash.sendMessage(anu.id, {
+          text: message,
+          contextInfo: {
+            mentionedJid: [num],
+            externalAdReply: {
+              thumbnailUrl: ppuser,
+              title: title,
+              body: '',
+              renderLargerThumbnail: true,
+              sourceUrl: global.linkgc || '',
+              mediaType: 1
+            }
+          }
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error in group-participants.update:", err);
+  }
+});
 
 Slash.public = true
 

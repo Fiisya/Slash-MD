@@ -11,6 +11,7 @@ global.namabot2 = "𝑺𝒍𝒂𝒔𝒉 𝟒𝟒𝟒+"
 global.version = "v5.0.0"
 global.foother = "Created By Haikal"
 global.linkgc = 'https://chat.whatsapp.com/Lcc5RrwcNi97LaNzHlrcYr'
+global.db = { data: { chats: {} } };
 global.linksaluran = "https://whatsapp.com/channel/0029Vb60rjm05MUhvzLPU125"
 global.linkyt = 'https://wkwkwk-wheat.vercel.app'
 global.linktele = "https://t.me/"

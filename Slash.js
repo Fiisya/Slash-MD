@@ -965,21 +965,45 @@ m.reply("*Berhasil Mematikan Antilink Grup V2 ✅*\nKetik *.statusgc* Untuk Meli
 return m.reply(example("on/off"))
 }}
 break
-case "welcome": {
-if (!isOwner) return m.reply(msg.owner)
-if (!text) return m.reply(example("on/off\nKetik *.statusbot* Untuk Melihat Status Setting Bot"))
-if (text.toLowerCase() == "on") {
-if (welcome) return m.reply("*Welcome* Sudah Aktif!\nKetik *.statusbot* Untuk Melihat Status Setting Bot")
-welcome = true
-m.reply("*Berhasil Menyalakan Welcome ✅*\nKetik *.statusbot* Untuk Melihat Status Setting Bot")
-} else if (text.toLowerCase() == "off") {
-if (!welcome) return m.reply("*Welcome* Sudah Tidak Aktif!\nKetik *.statusbot* Untuk Melihat Status Setting Bot")
-welcome = false
-m.reply("*Berhasil Mematikan Welcome ✅*\nKetik *.statusbot* Untuk Melihat Status Setting Bot")
-} else {
-return m.reply(example("on/off\n\nKetik *.statusbot* Untuk Melihat Status Setting Bot"))
-}}
-break
+
+case "setwelcome": {
+  // Cek apakah pengguna adalah admin grup
+  let metadata = await Slash.groupMetadata(m.chat);
+  let isAdmin = metadata.participants.find(p => p.id === m.sender)?.admin;
+  if (!isAdmin) return m.reply("Hanya admin grup yang bisa mengatur welcome message!");
+
+  if (!text) return m.reply("Masukkan pesan welcome, contoh: .setwelcome Hai, @user! Selamat datang di @subject\n@desc");
+
+  // Inisialisasi database kalau belum ada
+  if (!global.db.data) global.db.data = { chats: {} };
+  if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = {};
+
+  // Simpan custom welcome message
+  global.db.data.chats[m.chat].welcomeMessage = text;
+  console.log("Custom welcome set for group:", m.chat, "Message:", text);
+  m.reply("Berhasil mengatur welcome message:\n" + text);
+}
+break;
+
+case "setbye": {
+  // Cek apakah pengguna adalah admin grup
+  let metadata = await Slash.groupMetadata(m.chat);
+  let isAdmin = metadata.participants.find(p => p.id === m.sender)?.admin;
+  if (!isAdmin) return m.reply("Hanya admin grup yang bisa mengatur bye message!");
+
+  if (!text) return m.reply("Masukkan pesan bye, contoh: .setbye Sampai jumpa, @user! Dari @subject\n@desc");
+
+  // Inisialisasi database kalau belum ada
+  if (!global.db.data) global.db.data = { chats: {} };
+  if (!global.db.data.chats[m.chat]) global.db.data.chats[m.chat] = {};
+
+  // Simpan custom bye message
+  global.db.data.chats[m.chat].byeMessage = text;
+  console.log("Custom bye set for group:", m.chat, "Message:", text);
+  m.reply("Berhasil mengatur bye message:\n" + text);
+}
+break;
+
 case "autoread": {
 if (!isOwner) return m.reply(msg.owner)
 if (!text) return m.reply(example("on/off\nKetik *.statusbot* Untuk Melihat Status Setting Bot"))
