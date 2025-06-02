@@ -26,7 +26,7 @@ const {
     relayMessage,
     WA_DEFAULT_EPHEMERAL,
     makeCacheableSignalKeyStore
-} = require("@fizzxydev/baileys-pro")
+} = require("@vreden/meta")
 global.getAggregateVotesInPollMessage = getAggregateVotesInPollMessage
 global.makeCacheableSignalKeyStore = makeCacheableSignalKeyStore
 global.makeWASocket = makeWASocket

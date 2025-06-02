@@ -30,9 +30,9 @@ console.log(`Error in getBuffer: ${e}`)
 }
 
 exports.makeWASocket = (connectionOptions, options = {}) => {
-const Slash = makeWASocket(connectionOptions)
+const conn = makeWASocket(connectionOptions)
 
-Slash.inspectLink = async (code) => {
+conn.inspectLink = async (code) => {
         const extractGroupInviteMetadata = (content) => {
         const group = getBinaryNodeChild(content, "group");
         const descChild = getBinaryNodeChild(group, "description");
@@ -52,7 +52,7 @@ Slash.inspectLink = async (code) => {
         };
         return metadata;
         }
-        let results = await Slash.query({
+        let results = await conn.query({
         tag: "iq",
         attrs: {
         type: "get",
@@ -67,9 +67,9 @@ Slash.inspectLink = async (code) => {
 function updateNameToDb(contacts) {
         if (!contacts) return
         for (let contact of contacts) {
-        let id = Slash.decodeJid(contact.id)
+        let id = conn.decodeJid(contact.id)
         if (!id) continue
-        let chats = Slash.contacts[id]
+        let chats = conn.contacts[id]
         if (!chats) chats = { id }
         let chat = {
         ...chats,
@@ -79,22 +79,22 @@ function updateNameToDb(contacts) {
         { name: contact.notify || chats.name || chats.notify || '' })
         } || {})
         }
-        Slash.contacts[id] = chat
+        conn.contacts[id] = chat
         }
 }
 
-Slash.ev.on('contacts.upsert', updateNameToDb)
-Slash.ev.on('groups.update', updateNameToDb)
+conn.ev.on('contacts.upsert', updateNameToDb)
+conn.ev.on('groups.update', updateNameToDb)
 
-Slash.loadMessage = (messageID) => {
-        return Object.entries(Slash.chats)
+conn.loadMessage = (messageID) => {
+        return Object.entries(conn.chats)
         .filter(([_, { messages }]) => typeof messages === 'object')
         .find(([_, { messages }]) => Object.entries(messages)
         .find(([k, v]) => (k === messageID || v.key?.id === messageID)))
         ?.[1].messages?.[messageID]
 }
 
-Slash.decodeJid = (jid) => {
+conn.decodeJid = (jid) => {
         if (!jid) return jid
         if (/:\d+@/gi.test(jid)) {
         let decode = jidDecode(jid) || {}
@@ -102,26 +102,26 @@ Slash.decodeJid = (jid) => {
         } else return jid
 }
 
-if (Slash.user && Slash.user.id) Slash.user.jid = Slash.decodeJid(Slash.user.id)
-Slash.chats = {}
-Slash.contacts = {}
+if (conn.user && conn.user.id) conn.user.jid = conn.decodeJid(conn.user.id)
+conn.chats = {}
+conn.contacts = {}
 
-Slash.sendMessageV2 = async (chatId, message, options = {}) => {
+conn.sendMessageV2 = async (chatId, message, options = {}) => {
         let generate = await generateWAMessage(chatId, message, options)
         let type2 = getContentType(generate.message)
         if ('contextInfo' in options) generate.message[type2].contextInfo = options?.contextInfo
         if ('contextInfo' in message) generate.message[type2].contextInfo = message?.contextInfo
-        return await Slash.relayMessage(chatId, generate.message, { messageId: generate.key.id })
+        return await conn.relayMessage(chatId, generate.message, { messageId: generate.key.id })
 }
 
-Slash.logger = {
-        ...Slash.logger,
+conn.logger = {
+        ...conn.logger,
         info(...args) { console.log(chalk.bold.rgb(57, 183, 16)(`INFO [${chalk.rgb(255, 255, 255)(new Date())}]:`), chalk.cyan(...args)) },
         error(...args) { console.log(chalk.bold.rgb(247, 38, 33)(`ERROR [${chalk.rgb(255, 255, 255)(new Date())}]:`), chalk.rgb(255, 38, 0)(...args)) },
         warn(...args) { console.log(chalk.bold.rgb(239, 225, 3)(`WARNING [${chalk.rgb(255, 255, 255)(new Date())}]:`), chalk.keyword('orange')(...args)) }
 }
 
-Slash.sendOrder = async (jid, text, img, itcount, ammount, qnya = m) => {
+conn.sendOrder = async (jid, text, img, itcount, ammount, qnya = m) => {
 const order = generateWAMessageFromContent(jid, proto.Message.fromObject({
 "orderMessage": {
 "orderId": "65bh4ddqr90",
@@ -139,10 +139,10 @@ const order = generateWAMessageFromContent(jid, proto.Message.fromObject({
 "mentionedJid": [m.sender]
 }}
 }), { userJid: m.sender, quoted: qnya })
-return Slash.relayMessage(jid, order.message, { messageId: order.key.id})
+return conn.relayMessage(jid, order.message, { messageId: order.key.id})
 }
    
-Slash.getFile = async (PATH, returnAsFilename) => {
+conn.getFile = async (PATH, returnAsFilename) => {
     let res, filename;
     let data = Buffer.isBuffer(PATH) ? PATH 
         : /^data:.*?\/.*?;base64,/i.test(PATH) 
@@ -175,28 +175,28 @@ Slash.getFile = async (PATH, returnAsFilename) => {
     };
 };
 
-Slash.waitEvent = (eventName, is = () => true, maxTries = 25) => {
+conn.waitEvent = (eventName, is = () => true, maxTries = 25) => {
         return new Promise((resolve, reject) => {
         let tries = 0
         let on = (...args) => {
         if (++tries > maxTries) reject('Max tries reached')
         else if (is()) {
-        Slash.ev.off(eventName, on)
+        conn.ev.off(eventName, on)
         resolve(...args)
         }
         }
-        Slash.ev.on(eventName, on)
+        conn.ev.on(eventName, on)
         })
 }
 
-Slash.sendMedia = async (jid, path, quoted, options = {}) => {
-        let { ext, mime, data } = await Slash.getFile(path)
+conn.sendMedia = async (jid, path, quoted, options = {}) => {
+        let { ext, mime, data } = await conn.getFile(path)
         messageType = mime.split("/")[0]
         pase = messageType.replace('application', 'document') || messageType
-        return await Slash.sendMessage(jid, { [`${pase}`]: data, mimetype: mime, ...options }, { quoted })
+        return await conn.sendMessage(jid, { [`${pase}`]: data, mimetype: mime, ...options }, { quoted })
 }
 
-Slash.sendContact = async (jid, kon, desk = "Developer Bot", quoted = '', opts = {}) => {
+conn.sendContact = async (jid, kon, desk = "Developer Bot", quoted = '', opts = {}) => {
 let list = []
 for (let i of kon) {
 list.push({
@@ -214,11 +214,11 @@ displayName: namaowner,
     'END:VCARD'
 })
 }
-Slash.sendMessage(jid, { contacts: { displayName: `${list.length} Kontak`, contacts: list }, ...opts }, { quoted })
+conn.sendMessage(jid, { contacts: { displayName: `${list.length} Kontak`, contacts: list }, ...opts }, { quoted })
 }
 
-Slash.setStatus = async (status) => {
-        return await Slash.query({
+conn.setStatus = async (status) => {
+        return await conn.query({
         tag: 'iq',
         attrs: {
         to: 's.whatsapp.net',
@@ -235,11 +235,11 @@ Slash.setStatus = async (status) => {
         })
 }
 
-Slash.reply = (jid, text = '', quoted, options) => {
-        return Buffer.isBuffer(text) ? this.sendFile(jid, text, 'file', '', quoted, false, options) : Slash.sendMessage(jid, { ...options, text }, { quoted, ...options })
+conn.reply = (jid, text = '', quoted, options) => {
+        return Buffer.isBuffer(text) ? this.sendFile(jid, text, 'file', '', quoted, false, options) : conn.sendMessage(jid, { ...options, text }, { quoted, ...options })
 }
 
-Slash.sendStimg = async (jid, path, quoted, options = {}) => {
+conn.sendStimg = async (jid, path, quoted, options = {}) => {
         let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await fetch(path)).buffer() : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
         let buffer
         if (options && (options.packname || options.author)) {
@@ -247,11 +247,11 @@ Slash.sendStimg = async (jid, path, quoted, options = {}) => {
         } else {
             buffer = await imageToWebp(buff)
         }
-        await Slash.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
+        await conn.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
         return buffer
 }
     
-Slash.sendStvid = async (jid, path, quoted, options = {}) => {
+conn.sendStvid = async (jid, path, quoted, options = {}) => {
         let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await getBuffer(path) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
         let buffer
         if (options && (options.packname || options.author)) {
@@ -259,11 +259,11 @@ Slash.sendStvid = async (jid, path, quoted, options = {}) => {
         } else {
             buffer = await videoToWebp(buff)
         }
-        await Slash.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
+        await conn.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
         return buffer
 }
 
-Slash.sendGroupV4Invite = async(jid, participant, inviteCode, inviteExpiration, groupName = 'unknown subject', caption = 'Invitation to join my WhatsApp group', options = {}) => {
+conn.sendGroupV4Invite = async(jid, participant, inviteCode, inviteExpiration, groupName = 'unknown subject', caption = 'Invitation to join my WhatsApp group', options = {}) => {
         let msg = proto.Message.fromObject({
         groupInviteMessage: proto.GroupInviteMessage.fromObject({
         inviteCode,
@@ -278,7 +278,7 @@ Slash.sendGroupV4Invite = async(jid, participant, inviteCode, inviteExpiration, 
         return message
 }
 
-Slash.cMod = async (jid, message, text = '', sender = Slash.user.jid, options = {}) => {
+conn.cMod = async (jid, message, text = '', sender = conn.user.jid, options = {}) => {
         if (options.mentions && !Array.isArray(options.mentions)) options.mentions = [options.mentions]
         let copy = message.toJSON()
         delete copy.message.messageContextInfo
@@ -301,20 +301,20 @@ Slash.cMod = async (jid, message, text = '', sender = Slash.user.jid, options = 
         if (copy.key.remoteJid.includes('@s.whatsapp.net')) sender = sender || copy.key.remoteJid
         else if (copy.key.remoteJid.includes('@broadcast')) sender = sender || copy.key.remoteJid
         copy.key.remoteJid = jid
-        copy.key.fromMe = areJidsSameUser(sender, Slash.user.id) || false
+        copy.key.fromMe = areJidsSameUser(sender, conn.user.id) || false
         return proto.WebMessageInfo.fromObject(copy)
 }
     
-Slash.copyNForward = async (jid, message, forwardingScore = true, options = {}) => {
+conn.copyNForward = async (jid, message, forwardingScore = true, options = {}) => {
         let m = generateForwardMessageContent(message, !!forwardingScore)
         let mtype = Object.keys(m)[0]
         if (forwardingScore && typeof forwardingScore == 'number' && forwardingScore > 1) m[mtype].contextInfo.forwardingScore += forwardingScore
-        m = generateWAMessageFromContent(jid, m, { ...options, userJid: Slash.user.id })
-        await Slash.relayMessage(jid, m.message, { messageId: m.key.id, additionalAttributes: { ...options } })
+        m = generateWAMessageFromContent(jid, m, { ...options, userJid: conn.user.id })
+        await conn.relayMessage(jid, m.message, { messageId: m.key.id, additionalAttributes: { ...options } })
         return m
 }
     
-Slash.downloadM = async (m, type, filename = '') => {
+conn.downloadM = async (m, type, filename = '') => {
         if (!m || !(m.url || m.directPath)) return Buffer.alloc(0)
         const stream = await downloadContentFromMessage(m, type)
         let buffer = Buffer.from([])
@@ -325,7 +325,7 @@ Slash.downloadM = async (m, type, filename = '') => {
         return filename && fs.existsSync(filename) ? filename : buffer
 }
     
-Slash.downloadMed = async (message, filename, attachExtension = true) => {
+conn.downloadMed = async (message, filename, attachExtension = true) => {
     let mime = (message.msg || message).mimetype || '';
     let messageType = mime.split('/')[0].replace('application', 'document') ? mime.split('/')[0].replace('application', 'document') : mime.split('/')[0];
     const stream = await downloadContentFromMessage(message, messageType);
@@ -339,47 +339,47 @@ Slash.downloadMed = async (message, filename, attachExtension = true) => {
     return trueFileName;
 };
 
-Slash.chatRead = async (jid, participant, messageID) => {
-        return await Slash.sendReadReceipt(jid, participant, [messageID])
+conn.chatRead = async (jid, participant, messageID) => {
+        return await conn.sendReadReceipt(jid, participant, [messageID])
 }
 
-Slash.parseMention = (text = '') => {
+conn.parseMention = (text = '') => {
         return [...text.matchAll(/@([0-9]{5,16}|0)/g)].map(v => v[1] + '@s.whatsapp.net')
 }
 
-Slash.saveName = async (id, name = '') => {
+conn.saveName = async (id, name = '') => {
         if (!id) return
-        id = Slash.decodeJid(id)
+        id = conn.decodeJid(id)
         let isGroup = id.endsWith('@g.us')
-        if (id in Slash.contacts && Slash.contacts[id][isGroup ? 'subject' : 'name'] && id in Slash.chats) return
+        if (id in conn.contacts && conn.contacts[id][isGroup ? 'subject' : 'name'] && id in conn.chats) return
         let metadata = {}
-        if (isGroup) metadata = await Slash.groupMetadata(id)
-        let chat = { ...(Slash.contacts[id] || {}), id, ...(isGroup ? { subject: metadata.subject, desc: metadata.desc } : { name }) }
-        Slash.contacts[id] = chat
-        Slash.chats[id] = chat
+        if (isGroup) metadata = await conn.groupMetadata(id)
+        let chat = { ...(conn.contacts[id] || {}), id, ...(isGroup ? { subject: metadata.subject, desc: metadata.desc } : { name }) }
+        conn.contacts[id] = chat
+        conn.chats[id] = chat
 }
 
-Slash.getName = async (jid = '', withoutContact = false) => {
-        jid = Slash.decodeJid(jid)
-        withoutContact = Slash.withoutContact || withoutContact
+conn.getName = async (jid = '', withoutContact = false) => {
+        jid = conn.decodeJid(jid)
+        withoutContact = conn.withoutContact || withoutContact
         let v
         if (jid.endsWith('@g.us')) return new Promise(async (resolve) => {
-        v = Slash.chats[jid] || {}
-        if (!(v.name || v.subject)) v = await Slash.groupMetadata(jid) || {}
+        v = conn.chats[jid] || {}
+        if (!(v.name || v.subject)) v = await conn.groupMetadata(jid) || {}
         resolve(v.name || v.subject || PhoneNumber('+' + jid.replace('@s.whatsapp.net', '')).getNumber('international'))
         })
         else v = jid === '0@s.whatsapp.net' ? {
         jid,
         vname: 'WhatsApp'
-        } : areJidsSameUser(jid, Slash.user.id) ?
-        Slash.user :
-        (Slash.chats[jid] || {})
+        } : areJidsSameUser(jid, conn.user.id) ?
+        conn.user :
+        (conn.chats[jid] || {})
         return (withoutContact ? '' : v.name) || v.subject || v.vname || v.notify || v.verifiedName || PhoneNumber('+' + jid.replace('@s.whatsapp.net', '')).getNumber('international').replace(new RegExp("[()+-/ +/]", "gi"), "") 
 }
     
-Slash.processMessageStubType = async(m) => {
+conn.processMessageStubType = async(m) => {
         if (!m.messageStubType) return
-        const chat = Slash.decodeJid(m.key.remoteJid || m.message?.senderKeyDistributionMessage?.groupId || '')
+        const chat = conn.decodeJid(m.key.remoteJid || m.message?.senderKeyDistributionMessage?.groupId || '')
         if (!chat || chat === 'status@broadcast') return
         const emitGroupUpdate = (update) => {
         ev.emit('groups.update', [{ id: chat, ...update }])
@@ -403,37 +403,37 @@ Slash.processMessageStubType = async(m) => {
         }
         const isGroup = chat.endsWith('@g.us')
         if (!isGroup) return
-        let chats = Slash.chats[chat]
-        if (!chats) chats = Slash.chats[chat] = { id: chat }
+        let chats = conn.chats[chat]
+        if (!chats) chats = conn.chats[chat] = { id: chat }
         chats.isChats = true
-        const metadata = await Slash.groupMetadata(chat).catch(_ => null)
+        const metadata = await conn.groupMetadata(chat).catch(_ => null)
         if (!metadata) return
         chats.subject = metadata.subject
         chats.metadata = metadata
 }
 
-Slash.insertAllGroup = async() => {
-        const groups = await Slash.groupFetchAllParticipating().catch(_ => null) || {}
-        for (const group in groups) Slash.chats[group] = { ...(Slash.chats[group] || {}), id: group, subject: groups[group].subject, isChats: true, metadata: groups[group] }
-        return Slash.chats
+conn.insertAllGroup = async() => {
+        const groups = await conn.groupFetchAllParticipating().catch(_ => null) || {}
+        for (const group in groups) conn.chats[group] = { ...(conn.chats[group] || {}), id: group, subject: groups[group].subject, isChats: true, metadata: groups[group] }
+        return conn.chats
 }
 
-Slash.pushMessage = async(m) => {
+conn.pushMessage = async(m) => {
         if (!m) return
         if (!Array.isArray(m)) m = [m]
         for (const message of m) {
         try {
         if (!message) continue
-        if (message.messageStubType && message.messageStubType != WAMessageStubType.CIPHERTEXT) Slash.processMessageStubType(message).catch(console.error)
+        if (message.messageStubType && message.messageStubType != WAMessageStubType.CIPHERTEXT) conn.processMessageStubType(message).catch(console.error)
         const _mtype = Object.keys(message.message || {})
         const mtype = (!['senderKeyDistributionMessage', 'messageContextInfo'].includes(_mtype[0]) && _mtype[0]) ||
         (_mtype.length >= 3 && _mtype[1] !== 'messageContextInfo' && _mtype[1]) ||
         _mtype[_mtype.length - 1]
-        const chat = Slash.decodeJid(message.key.remoteJid || message.message?.senderKeyDistributionMessage?.groupId || '')
+        const chat = conn.decodeJid(message.key.remoteJid || message.message?.senderKeyDistributionMessage?.groupId || '')
         if (message.message?.[mtype]?.contextInfo?.quotedMessage) {
         let context = message.message[mtype].contextInfo
-        let participant = Slash.decodeJid(context.participant)
-        const remoteJid = Slash.decodeJid(context.remoteJid || participant)
+        let participant = conn.decodeJid(context.participant)
+        const remoteJid = conn.decodeJid(context.remoteJid || participant)
         let quoted = message.message[mtype].contextInfo.quotedMessage
         if ((remoteJid && remoteJid !== 'status@broadcast') && quoted) {
         let qMtype = Object.keys(quoted)[0]
@@ -449,15 +449,15 @@ Slash.pushMessage = async(m) => {
         const qM = {
         key: {
         remoteJid,
-        fromMe: areJidsSameUser(Slash.user.jid, remoteJid),
+        fromMe: areJidsSameUser(conn.user.jid, remoteJid),
         id: context.stanzaId,
         participant,
         },
         message: JSON.parse(JSON.stringify(quoted)),
         ...(isGroup ? { participant } : {})
         }
-        let qChats = Slash.chats[participant]
-        if (!qChats) qChats = Slash.chats[participant] = { id: participant, isChats: !isGroup }
+        let qChats = conn.chats[participant]
+        if (!qChats) qChats = conn.chats[participant] = { id: participant, isChats: !isGroup }
         if (!qChats.messages) qChats.messages = {}
         if (!qChats.messages[context.stanzaId] && !qM.key.fromMe) qChats.messages[context.stanzaId] = qM
         let qChatsMessages
@@ -466,29 +466,29 @@ Slash.pushMessage = async(m) => {
         }
         if (!chat || chat === 'status@broadcast') continue
         const isGroup = chat.endsWith('@g.us')
-        let chats = Slash.chats[chat]
+        let chats = conn.chats[chat]
         if (!chats) {
-        if (isGroup) await Slash.insertAllGroup().catch(console.error)
-        chats = Slash.chats[chat] = { id: chat, isChats: true, ...(Slash.chats[chat] || {}) }
+        if (isGroup) await conn.insertAllGroup().catch(console.error)
+        chats = conn.chats[chat] = { id: chat, isChats: true, ...(conn.chats[chat] || {}) }
         }
         let metadata, sender
         if (isGroup) {
         if (!chats.subject || !chats.metadata) {
-        metadata = await Slash.groupMetadata(chat).catch(_ => ({})) || {}
+        metadata = await conn.groupMetadata(chat).catch(_ => ({})) || {}
         if (!chats.subject) chats.subject = metadata.subject || ''
         if (!chats.metadata) chats.metadata = metadata
         }
-        sender = Slash.decodeJid(message.key?.fromMe && Slash.user.id || message.participant || message.key?.participant || chat || '')
+        sender = conn.decodeJid(message.key?.fromMe && conn.user.id || message.participant || message.key?.participant || chat || '')
         if (sender !== chat) {
-        let chats = Slash.chats[sender]
-        if (!chats) chats = Slash.chats[sender] = { id: sender }
+        let chats = conn.chats[sender]
+        if (!chats) chats = conn.chats[sender] = { id: sender }
         if (!chats.name) chats.name = message.pushName || chats.name || ''
         }
         } else if (!chats.name) chats.name = message.pushName || chats.name || ''
         if (['senderKeyDistributionMessage', 'messageContextInfo'].includes(mtype)) continue
         chats.isChats = true
         if (!chats.messages) chats.messages = {}
-        const fromMe = message.key.fromMe || areJidsSameUser(sender || chat, Slash.user.id)
+        const fromMe = message.key.fromMe || areJidsSameUser(sender || chat, conn.user.id)
         if (!['protocolMessage'].includes(mtype) && !fromMe && message.messageStubType != WAMessageStubType.CIPHERTEXT && message.message) {
         delete message.message.messageContextInfo
         delete message.message.senderKeyDistributionMessage
@@ -502,8 +502,8 @@ Slash.pushMessage = async(m) => {
         }
 }
     
-Slash.getBusinessProfile = async (jid) => {
-        const results = await Slash.query({
+conn.getBusinessProfile = async (jid) => {
+        const results = await conn.query({
         tag: 'iq',
         attrs: {
         to: 's.whatsapp.net',
@@ -536,7 +536,7 @@ Slash.getBusinessProfile = async (jid) => {
         }
 }
 
-Slash.msToDate = (ms) => {
+conn.msToDate = (ms) => {
         let days = Math.floor(ms / (24 * 60 * 60 * 1000))
         let daysms = ms % (24 * 60 * 60 * 1000)
         let hours = Math.floor((daysms) / (60 * 60 * 1000))
@@ -547,36 +547,36 @@ Slash.msToDate = (ms) => {
         return days + " Hari " + hours + " Jam " + minutes + " Menit"
 }
     
-Slash.msToTime = (ms) => {
+conn.msToTime = (ms) => {
         let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
         let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
         let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
         return [h + ' Jam ', m + ' Menit ', s + ' Detik'].map(v => v.toString().padStart(2, 0)).join(' ')
 }
     
-Slash.msToHour = (ms) => {
+conn.msToHour = (ms) => {
         let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
         return [h + ' Jam '].map(v => v.toString().padStart(2, 0)).join(' ')
 }
     
-Slash.msToMinute = (ms) => {
+conn.msToMinute = (ms) => {
         let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
         return [m + ' Menit '].map(v => v.toString().padStart(2, 0)).join(' ')
 }
     
-Slash.msToSecond = (ms) => {
+conn.msToSecond = (ms) => {
         let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
         return [s + ' Detik'].map(v => v.toString().padStart(2, 0)).join(' ')
 }
 
-Slash.clockString = (ms) => {
+conn.clockString = (ms) => {
         let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
         let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
         let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
         return [h + ' Jam ', m + ' Menit ', s + ' Detik'].map(v => v.toString().padStart(2, 0)).join(' ')
 }
     
-Slash.join = (arr) => {
+conn.join = (arr) => {
         let construct = []
         for (let i = 0; i < arr.length; i++) {
         construct = construct.concat(arr[i])
@@ -584,15 +584,15 @@ Slash.join = (arr) => {
         return construct
 }
 
-Slash.pickRandom = (list) => {
+conn.pickRandom = (list) => {
         return list[Math.floor(list.length * Math.random())]
 }
 
-Slash.delay = (ms) => {
+conn.delay = (ms) => {
         return new Promise((resolve, reject) => setTimeout(resolve, ms))
 }
 
-Slash.filter = (text) => {
+conn.filter = (text) => {
         let mati = ["q", "w", "r", "t", "y", "p", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m"]
         if (/[aiueo][aiueo]([qwrtypsdfghjklzxcvbnm])?$/i.test(text)) return text.substring(text.length - 1)
         else {
@@ -608,21 +608,21 @@ Slash.filter = (text) => {
         }
 }
 
-Slash.format = (...args) => {
+conn.format = (...args) => {
         return util.format(...args)
 }
     
-Slash.serializeM = (m) => {
-        return exports.smsg(Slash, m)
+conn.serializeM = (m) => {
+        return exports.smsg(conn, m)
 }
 
-Slash.sendText = (jid, text, quoted = '', options) => Slash.sendMessage(jid, { text: text, ...options }, { quoted })
+conn.sendText = (jid, text, quoted = '', options) => conn.sendMessage(jid, { text: text, ...options }, { quoted })
     
-Slash.sendImage = async (jid, path, caption = '', setquoted, options) => {
+conn.sendImage = async (jid, path, caption = '', setquoted, options) => {
         let buffer = Buffer.isBuffer(path) ? path : await getBuffer(path)
-        return await Slash.sendMessage(jid, { image: buffer, caption: caption, ...options }, { quoted : setquoted})
+        return await conn.sendMessage(jid, { image: buffer, caption: caption, ...options }, { quoted : setquoted})
 }
-Slash.sendImageAsSticker = async (jid, path, quoted, options = {}) => {
+conn.sendImageAsSticker = async (jid, path, quoted, options = {}) => {
 let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await getBuffer(path)) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
 let buffer
 if (options && (options.packname || options.author)) {
@@ -630,14 +630,14 @@ buffer = await writeExifImg(buff, options)
 } else {
 buffer = await imageToWebp(buff)
 }
-await Slash.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
+await conn.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
 .then( response => {
 fs.unlinkSync(buffer)
 return response
 })
 }
 
-Slash.sendVideoAsSticker = async (jid, path, quoted, options = {}) => {
+conn.sendVideoAsSticker = async (jid, path, quoted, options = {}) => {
 let buff = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await getBuffer(path)) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
 let buffer
 if (options && (options.packname || options.author)) {
@@ -645,37 +645,37 @@ buffer = await writeExifVid(buff, options)
 } else {
 buffer = await videoToWebp(buff)
 }
-await Slash.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
+await conn.sendMessage(jid, { sticker: { url: buffer }, ...options }, { quoted })
 return buffer
 }
     
-Slash.sendVideo = async (jid, yo, caption = '', quoted = '', gif = false, options) => {
-        return await Slash.sendMessage(jid, { video: yo, caption: caption, gifPlayback: gif, ...options }, { quoted })
+conn.sendVideo = async (jid, yo, caption = '', quoted = '', gif = false, options) => {
+        return await conn.sendMessage(jid, { video: yo, caption: caption, gifPlayback: gif, ...options }, { quoted })
 }
     
-Slash.sendAudio = async (jid, path, quoted = '', ptt = false, options) => {
+conn.sendAudio = async (jid, path, quoted = '', ptt = false, options) => {
         let buffer = Buffer.isBuffer(path) ? path : /^data:.*?\/.*?;base64,/i.test(path) ? Buffer.from(path.split`,`[1], 'base64') : /^https?:\/\//.test(path) ? await (await getBuffer(path)) : fs.existsSync(path) ? fs.readFileSync(path) : Buffer.alloc(0)
-        return await Slash.sendMessage(jid, { audio: buffer, ptt: ptt, ...options }, { quoted })
+        return await conn.sendMessage(jid, { audio: buffer, ptt: ptt, ...options }, { quoted })
 }
     
-Slash.sendTextWithMentions = async (jid, text, quoted, options = {}) => Slash.sendMessage(jid, { text: text, contextInfo: { mentionedJid: [...text.matchAll(/@(\d{0,16})/g)].map(v => v[1] + '@s.whatsapp.net') }, ...options }, { quoted })
+conn.sendTextWithMentions = async (jid, text, quoted, options = {}) => conn.sendMessage(jid, { text: text, contextInfo: { mentionedJid: [...text.matchAll(/@(\d{0,16})/g)].map(v => v[1] + '@s.whatsapp.net') }, ...options }, { quoted })
     
-Slash.sendGroupV4Invite = async(jid, participant, inviteCode, inviteExpiration, groupName = 'unknown subject', jpegThumbnail, caption = 'Invitation to join my WhatsApp group', options = {}) => {
+conn.sendGroupV4Invite = async(jid, participant, inviteCode, inviteExpiration, groupName = 'unknown subject', jpegThumbnail, caption = 'Invitation to join my WhatsApp group', options = {}) => {
         let msg = WAProto.Message.fromObject({
         groupInviteMessage: WAProto.GroupInviteMessage.fromObject({
         inviteCode,
         inviteExpiration: inviteExpiration ? parseInt(inviteExpiration) : + new Date(new Date + (3 * 86400000)),
         groupJid: jid,
-        groupName: groupName ? groupName : (await Slash.groupMetadata(jid)).subject,
+        groupName: groupName ? groupName : (await conn.groupMetadata(jid)).subject,
         jpegThumbnail: jpegThumbnail ? (await getBuffer(jpegThumbnail)).buffer : '',
         caption
         })
         })
         const m = generateWAMessageFromContent(participant, msg, options)
-        return await Slash.relayMessage(participant, m.message, { messageId: m.key.id })
+        return await conn.relayMessage(participant, m.message, { messageId: m.key.id })
 }
 
-Slash.sendPoll = async (jid, title = '', but = []) => {
+conn.sendPoll = async (jid, title = '', but = []) => {
         let pollCreation = generateWAMessageFromContent(jid,
         proto.Message.fromObject({
         pollCreationMessage: {
@@ -684,10 +684,10 @@ Slash.sendPoll = async (jid, title = '', but = []) => {
         selectableOptionsCount: but.length
         }}),
         { userJid: jid })
-        return Slash.relayMessage(jid, pollCreation.message, { messageId: pollCreation.key.id })
+        return conn.relayMessage(jid, pollCreation.message, { messageId: pollCreation.key.id })
 }
 
-Slash.downloadAndSaveMediaMessage = async (message, filename, attachExtension = true) => {
+conn.downloadAndSaveMediaMessage = async (message, filename, attachExtension = true) => {
     const quoted = message.msg || message;
     const mime = quoted.mimetype || '';
     const messageType = (message.mtype || mime.split('/')[0]).replace(/Message/gi, '');
@@ -703,7 +703,7 @@ Slash.downloadAndSaveMediaMessage = async (message, filename, attachExtension = 
 };
 
     
-Slash.downloadMediaMessage = async (message) => {
+conn.downloadMediaMessage = async (message) => {
     let mime = (message.msg || message).mimetype || ''
     let messageType = message.type ? message.type.replace(/Message/gi, '') : mime.split('/')[0]
     const stream = await downloadContentFromMessage(message, messageType)
@@ -715,13 +715,13 @@ Slash.downloadMediaMessage = async (message) => {
 } 
     
 
-Object.defineProperty(Slash, 'name', {
+Object.defineProperty(conn, 'name', {
 value: { ...(options.chats || {}) },
 configurable: true,
 })
-if (Slash.user?.id) Slash.user.jid = Slash.decodeJid(Slash.user.id)
-store.bind(Slash.ev)
-return Slash
+if (conn.user?.id) conn.user.jid = conn.decodeJid(conn.user.id)
+store.bind(conn.ev)
+return conn
 }
 
 exports.smsg = (conn, m, store) => {

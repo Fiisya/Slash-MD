@@ -1,4 +1,4 @@
-const { proto, delay, getContentType } = require('@fizzxydev/baileys-pro')
+const { proto, delay, getContentType } = require('@vreden/meta')
 const chalk = require('chalk')
 const fs = require('fs')
 const Crypto = require('crypto')
