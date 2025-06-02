@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
-    "@fizzxydev/baileys-pro": "^8.7.2",
+    "@vreden/meta": "^9.1.9",
     "api-dylux": "^1.8.4",
     "awesome-phonenumber": "^2.64.0",
     "axios": "^0.24.0",

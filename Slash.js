@@ -1,5 +1,5 @@
 const { Sticker } = require('wa-sticker-formatter')
-module.exports = async (Slash, m, store) => {
+module.exports = async (conn, m, store) => {
 const body = (m.mtype === 'conversation') ? m.message.conversation : (m.mtype == 'imageMessage') ? m.message.imageMessage.caption : (m.mtype == 'videoMessage') ? m.message.videoMessage.caption : (m.mtype == 'extendedTextMessage') ? m.message.extendedTextMessage.text : (m.mtype == 'buttonsResponseMessage') ? m.message.buttonsResponseMessage.selectedButtonId : (m.mtype == 'listResponseMessage') ? m.message.listResponseMessage.singleSelectReply.selectedRowId : (m.mtype === 'interactiveResponseMessage') ? JSON.parse(m.message.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson).id : (m.mtype == 'templateButtonReplyMessage') ? m.message.templateButtonReplyMessage.selectedId : (m.mtype === 'messageContextInfo') ? (m.message.buttonsResponseMessage?.selectedButtonId || m.message.listResponseMessage?.singleSelectReply.selectedRowId || m.text) : ''
 
 //========== DATABASE ===========//
@@ -36,12 +36,12 @@ const quoted = m.quoted ? m.quoted : m
 const mime = (quoted.msg || quoted).mimetype || ''
 const qmsg = (quoted.msg || quoted)
 const text = q = args.join(" ")
-const botNumber = await Slash.decodeJid(Slash.user.id)
+const botNumber = await conn.decodeJid(conn.user.id)
 const isGroup = m.chat.endsWith('@g.us')
 const senderNumber = m.sender.split('@')[0]
 const pushname = m.pushName || `${senderNumber}`
 const isBot = botNumber.includes(senderNumber)
-const groupMetadata = isGroup ? await Slash.groupMetadata(m.chat) : {}
+const groupMetadata = isGroup ? await conn.groupMetadata(m.chat) : {}
 let participant_bot = isGroup ? groupMetadata.participants.find((v) => v.id == botNumber) : {}
 const groupName = isGroup ? groupMetadata.subject : "";
 let participant_sender = isGroup ? groupMetadata.participants.find((v) => v.id == m.sender) : {}
@@ -203,14 +203,14 @@ async function dellCase(filePath, caseNameToRemove) {
 //========== FUNCTION ===========//
 let ppuser
 try {
-ppuser = await Slash.profilePictureUrl(m.sender, 'image')
+ppuser = await conn.profilePictureUrl(m.sender, 'image')
 } catch (err) {
 ppuser = 'https://telegra.ph/file/d1688cff04f816713f8aa.jpg'
 }
 
 async function SendSlide(jid, img, txt = []) {
 let anu = new Array()
-let imgsc = await prepareWAMessageMedia({ image: img}, { upload: Slash.waUploadToServer })
+let imgsc = await prepareWAMessageMedia({ image: img}, { upload: conn.waUploadToServer })
 for (let ii of txt) {
 anu.push({
 body: proto.Message.InteractiveMessage.Body.fromObject({
@@ -250,7 +250,7 @@ cards: anu
 })
 })}
 }}, {userJid: m.sender, quoted: qtoko})
-return Slash.relayMessage(jid, msgii.message, {
+return conn.relayMessage(jid, msgii.message, {
 messageId: msgii.key.id
 })}
 
@@ -291,17 +291,17 @@ if (!isGroup && !isOwner) {
 let teks = `*Hai Kak* @${m.sender.split('@')[0]}
 
 Maaf *Ownerku Sedang Offline*, Silahkan Tunggu Owner Kembali Online & Jangan Spam Chat`
-return Slash.sendMessage(m.chat, {text: `${teks}`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {
+return conn.sendMessage(m.chat, {text: `${teks}`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {
 showAdAttribution: true, thumbnail: fs.readFileSync("./media/ownermode.jpg"), renderLargerThumbnail: false, title: "｢ OWNER OFFLINE MODE ｣", mediaUrl: linkgc, sourceUrl: linkyt, previewType: "PHOTO"}}}, {quoted: null})
 }}
 
 /*if (global.antibug) {
 if (!isGroup && m.isBaileys && !m.fromMe) {
-await Slash.sendMessage(m.chat, {
+await conn.sendMessage(m.chat, {
 delete: {
 remoteJid: m.chat, fromMe: true, id: m.key.id
 }})
-await Slash.sendMessage(`${global.owner}@s.whatsapp.net`, {text: `*Terdeteksi Pesan Bug*
+await conn.sendMessage(`${global.owner}@s.whatsapp.net`, {text: `*Terdeteksi Pesan Bug*
 *Nomor :* ${m.sender.split("@")[0]}`}, {quoted: null})
 }}*/
 
@@ -310,15 +310,15 @@ if (!isBotAdmin) return
 if (!isAdmin && !isOwner && !m.fromMe) {
 var link = /chat.whatsapp.com|buka tautaniniuntukbergabungkegrupwhatsapp/gi
 if (link.test(m.text)) {
-var gclink = (`https://chat.whatsapp.com/` + await Slash.groupInviteCode(m.chat))
+var gclink = (`https://chat.whatsapp.com/` + await conn.groupInviteCode(m.chat))
 var isLinkThisGc = new RegExp(gclink, 'i')
 var isgclink = isLinkThisGc.test(m.text)
 if (isgclink) return
 let delet = m.key.participant
 let bang = m.key.id
-await Slash.sendMessage(m.chat, {text: `@${m.sender.split("@")[0]} Maaf Kamu Akan Saya Keluarkan Dari Grup Ini Karna Admin/Owner Bot Menyalakan Fitur *Antilink* Grup Lain!`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {thumbnail: fs.readFileSync("./media/warning.jpg"), title: "｢ LINK GRUP DETECTED ｣", previewType: "PHOTO"}}}, {quoted: m})
-await Slash.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
-await Slash.groupParticipantsUpdate(m.chat, [m.sender], "remove")
+await conn.sendMessage(m.chat, {text: `@${m.sender.split("@")[0]} Maaf Kamu Akan Saya Keluarkan Dari Grup Ini Karna Admin/Owner Bot Menyalakan Fitur *Antilink* Grup Lain!`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {thumbnail: fs.readFileSync("./media/warning.jpg"), title: "｢ LINK GRUP DETECTED ｣", previewType: "PHOTO"}}}, {quoted: m})
+await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
+await conn.groupParticipantsUpdate(m.chat, [m.sender], "remove")
 }
 }}
 
@@ -327,14 +327,14 @@ if (!isBotAdmin) return
 if (!isAdmin && !isOwner && !m.fromMe) {
 var link = /chat.whatsapp.com|buka tautaniniuntukbergabungkegrupwhatsapp/gi
 if (link.test(m.text)) {
-var gclink = (`https://chat.whatsapp.com/` + await Slash.groupInviteCode(m.chat))
+var gclink = (`https://chat.whatsapp.com/` + await conn.groupInviteCode(m.chat))
 var isLinkThisGc = new RegExp(gclink, 'i')
 var isgclink = isLinkThisGc.test(m.text)
 if (isgclink) return
 let delet = m.key.participant
 let bang = m.key.id
-await Slash.sendMessage(m.chat, {text: `@${m.sender.split("@")[0]} Maaf Pesan Kamu Saya Hapus Karna Admin/Owner Bot Menyalakan Fitur *Antilink* Grup Lain!`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {thumbnail: fs.readFileSync("./media/warning.jpg"), title: "｢ LINK GRUP DETECTED ｣", previewType: "PHOTO"}}}, {quoted: m})
-await Slash.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
+await conn.sendMessage(m.chat, {text: `@${m.sender.split("@")[0]} Maaf Pesan Kamu Saya Hapus Karna Admin/Owner Bot Menyalakan Fitur *Antilink* Grup Lain!`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {thumbnail: fs.readFileSync("./media/warning.jpg"), title: "｢ LINK GRUP DETECTED ｣", previewType: "PHOTO"}}}, {quoted: m})
+await conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: bang, participant: delet }})
 }
 }}
 
@@ -372,14 +372,15 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 
 –   *BOT INFORMATION*
 ┌  ◦  *Botname :* ${global.namabot2}
-│  ◦  *Mode :* ${Slash.public ? "Public": "Self"}
+│  ◦  *Mode :* ${conn.public ? "Public": "Self"}
 │  ◦  *Version :* ${global.version}
 │  ◦  *Runtime Bot :* ${runtime(process.uptime())}
 └  ◦  *Uptime Vps :* ${runtime(os.uptime())}
 
 — *Group Menu*
-▢ .hidetag teks
-▢ .tagall teks
+▢ .hidetag
+▢ .tagal
+▢ .totag
 ▢ .antilink
 ▢ .antilinkv2
 ▢ .anticall
@@ -441,6 +442,7 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 ▢ .listpremium
 ▢ .setbiobot
 ▢ .joingc
+▢ .grep
 
 — *Ai Menu*
 ▢ .ai
@@ -466,7 +468,7 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
 ▢ .spotifysearch
 ▢ .searchgroups
 ▢ .ytsearch 
-▢ .genshinbuild ( maintenance )
+▢ .genshinbuild
 
 — *Stalk Menu*
 ▢ .genshinstalk
@@ -490,7 +492,7 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
  forwardingScore: 99999,
  externalAdReply: {
  showAdAttribution: true,
- title: `${namabot} | By ${namaowner}`,
+ title: `${namabot}`,
  mediaType: 1,
  previewType: 1,
  body: `Haikal Here`,
@@ -505,7 +507,7 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
  }
  }
  };
- await Slash.sendMessage(m.chat, alpiii, { quoted: m });
+ await conn.sendMessage(m.chat, alpiii, { quoted: m });
 }
 break;
 
@@ -513,7 +515,7 @@ case "brat": {
           const quo = args.length >= 1 ? args.join(" ") : m.quoted?.text || m.quoted?.caption || m.quoted?.description || null;
   
   if (!quo) return m.reply("masukan teksnya woii");
-  Slash.sendMessage(m.chat, { react: { text: "⏱️",key: m.key,}})
+  conn.sendMessage(m.chat, { react: { text: "⏱️",key: m.key,}})
 async function brat(text) {
   try {
     return await new Promise((resolve, reject) => {
@@ -541,7 +543,7 @@ async function brat(text) {
 }
 
 const buf = await brat(quo);
-await Slash.sendImageAsSticker(m.chat, buf.image, m, { packname: "Made With By", author: "Slash 444+" })
+await conn.sendImageAsSticker(m.chat, buf.image, m, { packname: "Made With By", author: "Slash 444+" })
 }
                                                                                           break;
       case "bratvid":
@@ -550,7 +552,7 @@ await Slash.sendImageAsSticker(m.chat, buf.image, m, { packname: "Made With By",
           if (!text) {
             return m.reply("[❗] Input teks tidak ditemukan! Kirim perintah dengan format: .bratvid <teks>");
           }
-          Slash.sendMessage(m.chat, {
+          conn.sendMessage(m.chat, {
             react: {
               text: `⏱️`,
               key: m.key
@@ -562,7 +564,7 @@ await Slash.sendImageAsSticker(m.chat, buf.image, m, { packname: "Made With By",
               responseType: "arraybuffer"
             });
             let videoBuffer = response.data;
-            let stickerBuffer = await Slash.sendVideoAsSticker(m.chat, videoBuffer, m, {
+            let stickerBuffer = await conn.sendVideoAsSticker(m.chat, videoBuffer, m, {
               packname: "𝑴𝒂𝒅𝒆 𝑾𝒊𝒕𝒉 𝑩𝒚",
               author: "𝑺𝒍𝒂𝒔𝒉 𝑴𝑫 𝟒𝟒𝟒+"
             });
@@ -579,7 +581,7 @@ if (m.quoted || text) {
 let orang = m.mentionedJid[0] ? m.mentionedJid[0] : text ? text.replace(/[^0-9]/g, '')+'@s.whatsapp.net' : m.quoted ? m.quoted.sender : ''
 if (owner2.includes(orang) || orang == global.owner) return m.reply(`Nomor ${orang.split("@")[0]} Sudah Ada Di Database Owner`)
 if (orang == botNumber) return m.reply("Tidak Bisa Menambahkan Nomor Bot Kedalam Database Owner Tambahan!")
-let check = await Slash.onWhatsApp(`${orang.split("@")[0]}`)
+let check = await conn.onWhatsApp(`${orang.split("@")[0]}`)
 if (check.length < 1) return m.reply(`Nomor ${orang.split("@")[0]} Tidak Terdaftar Di WhatsApp`)
 await owner2.push(orang)
 await fs.writeFileSync("./all/database/owner.json", JSON.stringify(owner2, null, 2))
@@ -640,7 +642,7 @@ if (owner2.length < 1) return m.reply("Tidak Ada Owner Tambahan")
 let teksnya = `*LIST OWNER BOT⚡*\n\n`
 owner2.forEach(e => teksnya += `*Tag :* @${e.split("@")[0]}
 *WhatsApp :* ${e.split("@")[0]}\n\n`)
-Slash.sendMessage(m.chat, {text: teksnya, mentions: [...owner2]}, {quoted: qtoko})
+conn.sendMessage(m.chat, {text: teksnya, mentions: [...owner2]}, {quoted: qtoko})
 }
 break
 case "listprem": case "listpremium": {
@@ -648,14 +650,14 @@ if (premium.length < 1) return m.reply("Tidak Ada User Premium")
 let teksnya = `*LIST USER PREMIUM⚡*\n\n`
 premium.forEach(e => teksnya += `*Tag :* @${e.split("@")[0]}
 *WhatsApp :* ${e.split("@")[0]}\n\n`)
-Slash.sendMessage(m.chat, {text: teksnya, mentions: [...premium]}, {quoted: qtoko})
+conn.sendMessage(m.chat, {text: teksnya, mentions: [...premium]}, {quoted: qtoko})
 }
 break
 case "setppbot": case "setpp": {
 if (!isOwner) return m.reply(msg.owner)
 if (/image/g.test(mime)) {
-let media = await Slash.downloadAndSaveMediaMessage(qmsg)
-await Slash.updateProfilePicture(botNumber, {url: media})
+let media = await conn.downloadAndSaveMediaMessage(qmsg)
+await conn.updateProfilePicture(botNumber, {url: media})
 await fs.unlinkSync(media)
 m.reply("*Berhasil Mengganti Profil ✅*")
 } else return m.reply(example('dengan mengirim foto'))}
@@ -663,9 +665,9 @@ break
 case "setppbotpanjang": case "setpppanjang": {
 if (!isOwner) return m.reply(msg.owner)
 if (/image/g.test(mime)) {
-var medis = await Slash.downloadAndSaveMediaMessage(qmsg, 'ppbot.jpeg', false)
+var medis = await conn.downloadAndSaveMediaMessage(qmsg, 'ppbot.jpeg', false)
 var { img } = await generateProfilePicture(medis)
-await Slash.query({
+await conn.query({
 tag: 'iq',
 attrs: {
 to: botNumber,
@@ -688,14 +690,14 @@ break
 case "setnamabot": {
 if (!isOwner) return m.reply(msg.owner)
 if (!text) return m.reply(example('teksnya'))
-Slash.updateProfileName(text)
+conn.updateProfileName(text)
 m.reply("*Berhasil Mengganti Nama Bot ✅*")
 }
 break
 case "setbio": case "setbiobot": {
 if (!isOwner) return m.reply(msg.owner)
 if (!text) return m.reply(example('teksnya'))
-Slash.updateProfileStatus(text)
+conn.updateProfileStatus(text)
 m.reply("*Berhasil Mengganti Bio Bot ✅*")
 }
 break
@@ -721,7 +723,7 @@ case "qc": {
             const imageBuffer = await response.buffer(); // Unduh gambar ke buffer
 
             // KIRIM SEBAGAI STIKER
-            await Slash.sendImageAsSticker(m.chat, imageBuffer, m, { packname: "Made With By", author: "Slash 444+" });
+            await conn.sendImageAsSticker(m.chat, imageBuffer, m, { packname: "Made With By", author: "Slash 444+" });
 
         } else {
             const errorData = await response.json();
@@ -741,7 +743,7 @@ case "qc": {
           if (!quoted) {
             return m.reply(`ᴋɪʀɪᴍ ᴀᴛᴀᴜ ʀᴇᴘʟʏ ғᴏᴛᴏ/ᴠɪᴅᴇᴏ/ɢɪғ ᴡɪᴛʜ ᴄᴀᴘᴛɪᴏɴs ${prefix + command}\nᴠɪᴅᴇᴏ ᴅᴜʀᴀsɪ 1-20 ᴅᴇᴛɪᴋ`);
           }
-          Slash.sendMessage(m.chat, {
+          conn.sendMessage(m.chat, {
             react: {
               text: "🕒",
               key: m.key
@@ -749,7 +751,7 @@ case "qc": {
           });
           if (/image/.test(mime)) {
             let media = await quoted.download();
-            let encmedia = await Slash.sendImageAsSticker(m.chat, media, m, {
+            let encmedia = await conn.sendImageAsSticker(m.chat, media, m, {
               packname: global.packname,
               author: global.author
             });
@@ -757,14 +759,14 @@ case "qc": {
             if ((quoted.msg || quoted).seconds > 20) {
               return m.reply("ᴋɪʀɪᴍ ᴀᴛᴀᴜ ʀᴇᴘʟʏ ғᴏᴛᴏ/ᴠɪᴅᴇᴏ/ɢɪғ ᴡɪᴛʜ ᴄᴀᴘᴛɪᴏɴs ${prefix+command}\nᴠɪᴅᴇᴏ ᴅᴜʀᴀsɪ 1-20 ᴅᴇᴛɪᴋ");
             }
-            Slash.sendMessage(m.chat, {
+            conn.sendMessage(m.chat, {
               react: {
                 text: "🕒",
                 key: m.key
               }
             });
             let media = await quoted.download();
-            let encmedia = await Slash.sendVideoAsSticker(m.chat, media, m, {
+            let encmedia = await conn.sendVideoAsSticker(m.chat, media, m, {
               packname: global.packname,
               author: global.author
             });
@@ -775,13 +777,13 @@ case "qc": {
 break
 case "public": {
 if (!isOwner) return m.reply(msg.owner)
-Slash.public = true
+conn.public = true
 m.reply("*Berhasil Mengganti Mode ✅*\nMode Bot Beralih Ke *Public*")
 }
 break
 case "self": {
 if (!isOwner) return m.reply(msg.owner)
-Slash.public = false
+conn.public = false
 m.reply("*Berhasil Mengganti Mode ✅*\nMode Bot Beralih Ke *Self*")
 }
 break
@@ -789,7 +791,7 @@ case "getcase": {
 if (!isOwner) return m.reply(msg.owner)
 if (!text) return m.reply(example("menu"))
 const getcase = (cases) => {
-return "case "+`\"${cases}\"`+fs.readFileSync('./Slash.js').toString().split('case \"'+cases+'\"')[1].split("break")[0]+"break"
+return "case "+`\"${cases}\"`+fs.readFileSync('./conn.js').toString().split('case \"'+cases+'\"')[1].split("break")[0]+"break"
 }
 try {
 m.reply(`${getcase(q)}`)
@@ -802,14 +804,14 @@ return m.reply(`Case *${text}* Tidak Ditemukan`)
             case 'bcgroup': {
                 if (!isOwner) return m.reply(msg.admin)
                 if (!text) return m.reply(`Text mana?\n\nContoh : ${prefix + command} Besok Libur `)
-                let getGroups = await Slash.groupFetchAllParticipating()
+                let getGroups = await conn.groupFetchAllParticipating()
                 let groups = Object.entries(getGroups).slice(0).map(entry => entry[1])
                 let anu = groups.map(v => v.id)
                 m.reply(`Mengirim Broadcast Ke ${anu.length} Group Chat, Waktu Selesai ${anu.length * 1.5} detik`)
                 for (let i of anu) {
                     await sleep(1500)
                     let a = '```' + `\n\n${text}\n\n` + '```' + '\n\n\nʙʀᴏᴀᴅᴄᴀsᴛ'
-                    Slash.sendMessage(i, {
+                    conn.sendMessage(i, {
                         text: a,
                         contextInfo: {
                             externalAdReply: {
@@ -833,7 +835,7 @@ return m.reply(`Case *${text}* Tidak Ditemukan`)
 
     if (!isOwner) return m.reply('Hanya owner yang dapat menggunakan fitur ini.');
 
-    const groupMetadata = await Slash.groupMetadata(from);
+    const groupMetadata = await conn.groupMetadata(from);
     const participants = groupMetadata.participants;
 
     if (!text) return m.reply('Silakan masukkan pesan yang ingin dikirim.');
@@ -846,7 +848,7 @@ return m.reply(`Case *${text}* Tidak Ditemukan`)
         const memberId = member.id; 
         try {
             // Kirim pesan ke anggota grup
-            await Slash.sendMessage(memberId, { text: pesan });
+            await conn.sendMessage(memberId, { text: pesan });
             console.log(`Pesan berhasil dikirim ke: ${memberId}`);
             success++;
         } catch (error) {
@@ -871,7 +873,7 @@ case 'pushkontakid': {
     const groupId = args[0].trim(); 
     const pesan = args[1].trim(); 
     try {
-        const groupMetadata = await Slash.groupMetadata(groupId);
+        const groupMetadata = await conn.groupMetadata(groupId);
         const participants = groupMetadata.participants;
 
         let success = 0;
@@ -880,7 +882,7 @@ case 'pushkontakid': {
         for (let member of participants) {
             const memberId = member.id; 
             try {
-                await Slash.sendMessage(memberId, { text: pesan });
+                await conn.sendMessage(memberId, { text: pesan });
                 console.log(`Pesan berhasil dikirim ke: ${memberId}`);
                 success++;
             } catch (error) {
@@ -906,7 +908,7 @@ if (!q) return m.reply(`ᴄᴏɴᴛᴏʜ ᴘᴇɴɢɢᴜɴᴀᴀɴ:\n\nʟɪɴᴋ
 let linkRegex = args.join(" ")
 let coded = linkRegex.split("https://chat.whatsapp.com/")[1]
 if (!coded) return m.reply("Link Invalid")
-Slash.query({
+conn.query({
 tag: "iq",
 attrs: {
 type: "get",
@@ -971,7 +973,7 @@ break
 
 case "setwelcome": {
   // Cek apakah pengguna adalah admin grup
-  let metadata = await Slash.groupMetadata(m.chat);
+  let metadata = await conn.groupMetadata(m.chat);
   let isAdmin = metadata.participants.find(p => p.id === m.sender)?.admin;
   if (!isAdmin) return m.reply("Hanya admin grup yang bisa mengatur welcome message!");
 
@@ -990,7 +992,7 @@ break;
 
 case "setbye": {
   // Cek apakah pengguna adalah admin grup
-  let metadata = await Slash.groupMetadata(m.chat);
+  let metadata = await conn.groupMetadata(m.chat);
   let isAdmin = metadata.participants.find(p => p.id === m.sender)?.admin;
   if (!isAdmin) return m.reply("Hanya admin grup yang bisa mengatur bye message!");
 
@@ -1083,7 +1085,7 @@ var teks = `
 *Contoh Penggunaan :*
 Ketik *.antilink* on/off
 `
-Slash.sendText(m.chat, teks, qchanel)
+conn.sendText(m.chat, teks, qchanel)
 }
 break
 case 'spamcallvid': {
@@ -1100,7 +1102,7 @@ case 'spamcallvid': {
     await sleep(1000);
     async function sendOfferVideoCall(target) {
         try {
-            await Slash.offerCall(target, { video: true });
+            await conn.offerCall(target, { video: true });
             console.log(chalk.white.bold('Success Send Offer Video Call To Target.'));
         } catch (error) {
             console.error(chalk.white.bold('Failed Send Offer Video Call To Target:'), error);
@@ -1116,8 +1118,8 @@ if (!isGroup) return m.reply(msg.group)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (/image/g.test(mime)) {
-let media = await Slash.downloadAndSaveMediaMessage(qmsg)
-await Slash.updateProfilePicture(m.chat, {url: media})
+let media = await conn.downloadAndSaveMediaMessage(qmsg)
+await conn.updateProfilePicture(m.chat, {url: media})
 await fs.unlinkSync(media)
 m.reply("*Berhasil Mengganti Foto Grup ✅*")
 } else return m.reply(example('dengan mengirim foto'))
@@ -1129,7 +1131,7 @@ if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (!text) return m.reply(example('teksnya'))
 const gcname = metadata.subject
-await Slash.groupUpdateSubject(m.chat, text)
+await conn.groupUpdateSubject(m.chat, text)
 m.reply(`*Berhasil Mengganti Nama Grup ✅*\n*${gcname}* Menjadi *${text}*`)
 }
 break
@@ -1138,7 +1140,7 @@ if (!isGroup) return m.reply(msg.group)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (!text) return m.reply(example('teksnya'))
-await Slash.groupUpdateDescription(m.chat, text)
+await conn.groupUpdateDescription(m.chat, text)
 m.reply(`*Berhasil Mengganti Deskripsi Grup ✅*`)
 }
 break
@@ -1146,7 +1148,7 @@ case "open": {
 if (!isGroup) return m.reply(msg.group)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
-await Slash.groupSettingUpdate(m.chat, 'not_announcement')
+await conn.groupSettingUpdate(m.chat, 'not_announcement')
 m.reply("*Berhasil Mengganti Setelan Grup ✅*\nMenjadi Anggota Dapat Mengirim Pesan")
 }
 break
@@ -1154,7 +1156,7 @@ case "close": {
 if (!isGroup) return m.reply(msg.group)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
-await Slash.groupSettingUpdate(m.chat, 'announcement')
+await conn.groupSettingUpdate(m.chat, 'announcement')
 m.reply("*Berhasil Mengganti Setelan Grup ✅*\nMenjadi Hanya Admin Yang Dapat Mengirim Pesan")
 }
 break
@@ -1163,14 +1165,14 @@ if (isGroup) {
 if (!isOwner && !isAdmin) return m.reply(msg.admin)
 if (!m.quoted) return m.reply("Reply Pesan Yang Ingin Di Hapus")
 if (m.quoted.sender == botNumber) {
-Slash.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: true, id: m.quoted.id, participant: m.quoted.sender}})
+conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: true, id: m.quoted.id, participant: m.quoted.sender}})
 } else {
 if (!isBotAdmin) return m.reply(msg.adminbot)
-Slash.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.quoted.id, participant: m.quoted.sender}})
+conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.quoted.id, participant: m.quoted.sender}})
 }} else {
 if (!isOwner) return m.reply(msg.owner)
 if (!m.quoted) return m.reply("Reply Pesan Yang Ingin Di Hapus")
-Slash.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.quoted.id, participant: m.quoted.sender}})
+conn.sendMessage(m.chat, { delete: { remoteJid: m.chat, fromMe: false, id: m.quoted.id, participant: m.quoted.sender}})
 }}
 break
 case "demote": case "demote": {
@@ -1179,7 +1181,7 @@ if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (m.quoted || text) {
 let target = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text.replace(/[^0-9]/g, '')+'@s.whatsapp.net'
-await Slash.groupParticipantsUpdate(m.chat, [target], 'demote').then((res) => m.reply(`Berhasil Memberhentikan ${target.split("@")[0]} Sebagai Admin Grup Ini`)).catch((err) => m.reply(err.toString()))
+await conn.groupParticipantsUpdate(m.chat, [target], 'demote').then((res) => m.reply(`Berhasil Memberhentikan ${target.split("@")[0]} Sebagai Admin Grup Ini`)).catch((err) => m.reply(err.toString()))
 } else return m.reply(example('62838XXX'))}
 break
 case "promote": case "promot": {
@@ -1188,17 +1190,17 @@ if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (!isBotAdmin) return m.reply(msg.adminbot)
 if (m.quoted || text) {
 let target = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text.replace(/[^0-9]/g, '')+'@s.whatsapp.net'
-await Slash.groupParticipantsUpdate(m.chat, [target], 'promote').then((res) => m.reply(`Berhasil Menjadikan ${target.split("@")[0]} Sebagai Admin Grup Ini`)).catch((err) => m.reply(err.toString()))
+await conn.groupParticipantsUpdate(m.chat, [target], 'promote').then((res) => m.reply(`Berhasil Menjadikan ${target.split("@")[0]} Sebagai Admin Grup Ini`)).catch((err) => m.reply(err.toString()))
 } else return m.reply(example('6283XXX/@tag'))}
 break
 case "add": case "addmember": {
 if (!isGroup) return m.reply(msg.group)
 if (!args[0]) return m.reply(example("62838XXX"))
 var teks = text.replace(/[^0-9]/g, '')+'@s.whatsapp.net'
-var cek = await Slash.onWhatsApp(`${teks.split("@")[0]}`)
+var cek = await conn.onWhatsApp(`${teks.split("@")[0]}`)
 if (cek.length < 1) return m.reply("Nomor Tersebut Tidak Terdaftar Di WhatsApp")
 if (!isBotAdmin || !groupMetadata.memberAddMode) return m.reply("Gagal Menambahkan Member, Karna Admin Tidak Mengizinkam Peserta Dapat Add Member")
-var a = await Slash.groupParticipantsUpdate(m.chat, [teks], 'add')
+var a = await conn.groupParticipantsUpdate(m.chat, [teks], 'add')
 if (a[0].status == 200) return m.reply(`Berhasil Menambahkan ${teks.split("@")[0]} Kedalam Grup Ini`)
 if (a[0].status == 408) return m.reply(`Gagal Menambahkan ${teks.split("@")[0]} Ke Dalam Grup Ini, Karna Target Tidak Mengizinkan Orang Lain Dapat Menambahkan Dirinya Ke Dalam Grup`)
 if (a[0].status == 409) return m.reply(`Dia Sudah Ada Di Dalam Grup Ini!`)
@@ -1211,7 +1213,7 @@ if (!isBotAdmin) return m.reply(msg.adminbot)
 if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (text || m.quoted) {
 let users = m.mentionedJid[0] ? m.mentionedJid[0] : m.quoted ? m.quoted.sender : text.replace(/[^0-9]/g, '')+'@s.whatsapp.net'
-await Slash.groupParticipantsUpdate(m.chat, [users], 'remove').then((res) => Slash.sendMessage(m.chat, {text: `Berhasil Mengeluarkan @${users.split("@")[0]} Dari Grup Ini`, mentions: [`${users}`]}, {quoted: m})).catch((err) => m.reply(err.toString()))
+await conn.groupParticipantsUpdate(m.chat, [users], 'remove').then((res) => conn.sendMessage(m.chat, {text: `Berhasil Mengeluarkan @${users.split("@")[0]} Dari Grup Ini`, mentions: [`${users}`]}, {quoted: m})).catch((err) => m.reply(err.toString()))
 } else return m.reply(example('nomornya/@tag'))}
 break
 case "hidetag": case "z": case "h": {
@@ -1220,7 +1222,7 @@ if (!isAdmin && !isOwner) return m.reply(msg.admin)
 if (!m.quoted && !text) return m.reply(example("teksnya/replyteks"))
 var teks = m.quoted ? m.quoted.text : text
 var member = await groupMetadata.participants.map(e => e.id)
-Slash.sendMessage(m.chat, {text: teks, mentions: [...member]})
+conn.sendMessage(m.chat, {text: teks, mentions: [...member]})
 }
 break
 case "tagall": case "tag": {
@@ -1230,7 +1232,7 @@ if (!text) return m.reply(example("Pesannya"))
 var member = await groupMetadata.participants.map(e => e.id)
 var teks = ` ${text}\n\n`
 member.forEach(e => e !== m.sender ? teks += `@${e.split("@")[0]}\n` : '')
-Slash.sendMessage(m.chat, {text: teks, mentions: [...member]})
+conn.sendMessage(m.chat, {text: teks, mentions: [...member]})
 }
 break
 case "joingc": case "join": {
@@ -1239,7 +1241,7 @@ if (!text && !m.quoted) return m.reply(example('linknya'))
 let teks = m.quoted ? m.quoted.text : text
 if (!teks.includes('whatsapp.com')) return m.reply("Link Tautan Tidak Valid!")
 let result = teks.split('https://chat.whatsapp.com/')[1]
-await Slash.groupAcceptInvite(result).then(respon => m.reply("Berhasil Bergabung Ke Dalam Grup ✅")).catch(error => m.reply(error.toString()))
+await conn.groupAcceptInvite(result).then(respon => m.reply("Berhasil Bergabung Ke Dalam Grup ✅")).catch(error => m.reply(error.toString()))
 }
 break
 case "leave": case "leavegc": {
@@ -1247,12 +1249,12 @@ if (!isOwner) return m.reply(msg.owner)
 if (!isGroup) return m.reply(msg.group)
 await m.reply("Otw Bosss")
 await sleep(3000)
-await Slash.groupLeave(m.chat)
+await conn.groupLeave(m.chat)
 }
 break
 case "leavegc2": case "leave2": {
 if (!isOwner) return m.reply(msg.owner)
-let gcall = await Object.values(await Slash.groupFetchAllParticipating().catch(_=> null))
+let gcall = await Object.values(await conn.groupFetchAllParticipating().catch(_=> null))
 let num = []
 let listgc = `*Contoh Cara Penggunaan :*\nKetik *${cmd}* Nomor Grup\n\n`
 await gcall.forEach((u, i) => {
@@ -1260,13 +1262,13 @@ num.push(i)
 listgc += `*${i+1}.* ${u.subject}\n* *ID :* ${u.id}\n* *Total Member :* ${u.participants.length} Member\n* *Status Grup :* ${u.announce == true ? "Tertutup" : "Terbuka"}\n* *Pembuat :* ${u.owner ? u.owner.split('@')[0] : 'Sudah keluar'}\n\n`
 })
 if (!args[0]) {
-Slash.sendMessage(m.chat, {text: `${listgc}`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {
+conn.sendMessage(m.chat, {text: `${listgc}`, contextInfo: {mentionedJid: [m.sender], externalAdReply: {
 thumbnail: await getBuffer(ppuser), title: `[ ${gcall.length} Group Chat ] `, body: `Runtime : ${runtime(process.uptime())}`,  sourceUrl: global.linkyt, previewType: "PHOTO"}}}, {quoted: qchanel})
 } else if (args[0]) {
 if (!num.includes(Number(args[0]) - 1)) return m.reply("Grup tidak ditemukan")
 let leav = Number(args[0]) - 1
 await m.reply(`Berhasil Keluar Dari Grup :\n*${gcall[leav].subject}*`)
-await Slash.groupLeave(`${gcall[leav].id}`)
+await conn.groupLeave(`${gcall[leav].id}`)
 }}
 break
 
@@ -1285,7 +1287,7 @@ ${global.dana}
 *Note :*
 Demi Keamanan Bersama, Buyyer Wajib Mengirim Bukti Pembayaran Agar Tidak Terjadi Hal Yang Tidak Di Inginkan!
 `
-Slash.sendText(m.chat, teks, qchanel)
+conn.sendText(m.chat, teks, qchanel)
 }
 break
 case "ovopay": {
@@ -1298,7 +1300,7 @@ ${global.ovo}
 *Note :*
 Demi Keamanan Bersama, Buyyer Wajib Mengirim Bukti Pembayaran Agar Tidak Terjadi Hal Yang Tidak Di Inginkan!
 `
-Slash.sendText(m.chat, teks, qchanel)
+conn.sendText(m.chat, teks, qchanel)
 }
 break
 case "gopaypay": {
@@ -1311,7 +1313,7 @@ ${global.gopay}
 *Note :*
 Demi Keamanan Bersama, Buyyer Wajib Mengirim Bukti Pembayaran Agar Tidak Terjadi Hal Yang Tidak Di Inginkan!
 `
-Slash.sendText(m.chat, teks, qchanel)
+conn.sendText(m.chat, teks, qchanel)
 }
 break
 case "qrispay": {
@@ -1323,7 +1325,7 @@ _WAJIB TAMBAH 500P KALAU PAKAI QRIS_
 *Note :*
 Demi Keamanan Bersama, Buyyer Wajib Mengirim Bukti Pembayaran Agar Tidak Terjadi Hal Yang Tidak Di Inginkan!
 `
-Slash.sendMessage(m.chat, {image: global.qris, caption: teks}, {quoted: qchanel})
+conn.sendMessage(m.chat, {image: global.qris, caption: teks}, {quoted: qchanel})
 }
  case "ai": {
  if (!text) return m.reply("Halo, Ada Yang Saya Bantu?");
@@ -1332,7 +1334,7 @@ Slash.sendMessage(m.chat, {image: global.qris, caption: teks}, {quoted: qchanel}
  const res = await fetch(url);
  const response = await res.json();
  try {
- Slash.sendMessage(m.chat, {
+ conn.sendMessage(m.chat, {
  text: `${response.jawaban}`
  }, { quoted: m })
  } catch (e) {
@@ -1358,11 +1360,11 @@ case 'tt': case 'tiktok': case 'ttdl': {
 
         if (noWatermarkData) {
           // It's a video, send the no-watermark URL
-          Slash.sendMessage(m.chat, { video: { url: noWatermarkData.url }, caption: `Title: ${response.title || 'N/A'}\nAuthor: ${response.author.nickname || 'N/A'}` }, { quoted: m });
+          conn.sendMessage(m.chat, { video: { url: noWatermarkData.url }, caption: `Title: ${response.title || 'N/A'}\nAuthor: ${response.author.nickname || 'N/A'}` }, { quoted: m });
         } else if (photoData.length > 0) {
           // It's an image album, send all photos
           for (const photo of photoData) {
-            Slash.sendMessage(m.chat, { image: { url: photo.url } }, { quoted: m });
+            conn.sendMessage(m.chat, { image: { url: photo.url } }, { quoted: m });
           }
         } else {
           m.reply('Tidak dapat menemukan data video atau gambar yang sesuai.');
@@ -1397,9 +1399,9 @@ case 'igdl': {
         const cap = `Downloaded from Instagram by @${username || 'N/A'}\n\nCaption:\n${caption || 'No caption.'}`;
 
         if (type === 'mp4') {
-          await Slash.sendMessage(m.chat, { video: { url: download_url }, caption: cap }, { quoted: m });
+          await conn.sendMessage(m.chat, { video: { url: download_url }, caption: cap }, { quoted: m });
         } else {
-          await Slash.sendMessage(m.chat, { image: { url: download_url }, caption: cap }, { quoted: m });
+          await conn.sendMessage(m.chat, { image: { url: download_url }, caption: cap }, { quoted: m });
         }
       }
     } else {
@@ -1434,7 +1436,7 @@ case 'facebook': {
       const videoBuffer = Buffer.from(videoRes.data);
 
       // Kirim video dengan thumbnail dan caption
-      await Slash.sendMessage(m.chat, {
+      await conn.sendMessage(m.chat, {
         video: videoBuffer,
         caption: `🎬 Video Facebook\nResolusi: ${resolution}`,
         jpegThumbnail: await (await axios.get(thumb, {responseType: 'arraybuffer'})).data
@@ -1459,7 +1461,7 @@ case 'twitter': {
 
     if (response.status === 200 && response.download_link && response.download_link.length > 0) {
       const downloadUrl = response.download_link[0]; // Take the first download link
-      Slash.sendMessage(m.chat, { video: { url: downloadUrl }, caption: `Downloaded from Twitter/X\nSource: ${response.source || 'N/A'}` }, { quoted: m });
+      conn.sendMessage(m.chat, { video: { url: downloadUrl }, caption: `Downloaded from Twitter/X\nSource: ${response.source || 'N/A'}` }, { quoted: m });
     } else {
       m.reply(`Failed to download from Twitter/X: ${response.message || 'No download link found or an error occurred.'}`);
     }
@@ -1497,7 +1499,7 @@ case "remini": {
   };
 
   try {
-    let foto = await Slash.downloadAndSaveMediaMessage(qmsg);
+    let foto = await conn.downloadAndSaveMediaMessage(qmsg);
     let imageUrl = await uploadUguu(foto);
 
     let response = await fetch(`https://anabot.my.id/api/ai/toEnhanceArtImage?imageUrl=${encodeURIComponent(imageUrl)}&apikey=freeApikey`);
@@ -1508,7 +1510,7 @@ case "remini": {
       return m.reply(`Gagal enhance gambar, coba lagi nanti.`);
     }
 
-    await Slash.sendMessage(m.chat, { image: { url: json.data.result }, caption: '✨ Berhasil meningkatkan kualitas gambar' }, { quoted: m });
+    await conn.sendMessage(m.chat, { image: { url: json.data.result }, caption: '✨ Berhasil meningkatkan kualitas gambar' }, { quoted: m });
     await fs.unlinkSync(foto);
 
   } catch (e) {
@@ -1545,7 +1547,7 @@ case 'play': {
 └───────────────`;
 
         // Kirim informasi lagu terlebih dahulu
-        await Slash.sendMessage(m.chat, {
+        await conn.sendMessage(m.chat, {
             text: capt,
             contextInfo: {
                 forwardingScore: 999,
@@ -1570,7 +1572,7 @@ case 'play': {
         const audioData = await audioRes.json();
 
         if (audioData.status && audioData.result && audioData.result.type === 'audio') {
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 audio: { url: audioData.result.download_url },
                 mimetype: 'audio/mpeg',
                 contextInfo: {
@@ -1642,8 +1644,8 @@ case 'ytv': { // Menambahkan case 'ytv' jika Anda ingin perintah baru untuk ini
 │ Ukuran    : ${fileSize}
 └───────────────`;
 
-        // Menggunakan Slash.sendMessage dan m.chat seperti pada kode Anda
-        await Slash.sendMessage(m.chat, {
+        // Menggunakan conn.sendMessage dan m.chat seperti pada kode Anda
+        await conn.sendMessage(m.chat, {
             video: { url: videoUrl },
             caption,
             contextInfo: {
@@ -1683,7 +1685,7 @@ case 'ytmp3': {
 
     if (response.status && response.result && response.result.type === 'audio') {
       const { title, download_url } = response.result;
-      Slash.sendMessage(m.chat, { audio: { url: download_url }, mimetype: 'audio/mpeg', caption: `Title: ${title}` }, { quoted: m });
+      conn.sendMessage(m.chat, { audio: { url: download_url }, mimetype: 'audio/mpeg', caption: `Title: ${title}` }, { quoted: m });
     } else {
       m.reply(`Gagal mengunduh audio dari YouTube: ${response.message || 'Terjadi kesalahan atau bukan format audio yang didukung.'}`);
     }
@@ -1713,7 +1715,7 @@ case 'spotifydl': {
 └───────────────`;
 
       // Kirim pesan dengan thumbnail dan caption terlebih dahulu
-      await Slash.sendMessage(m.chat, {
+      await conn.sendMessage(m.chat, {
         image: { url: image }, // Menggunakan thumbnail dari Spotify
         caption: caption,
         contextInfo: {
@@ -1733,7 +1735,7 @@ case 'spotifydl': {
 
       // Kirim file audio
       m.reply('Mengirim file audio...');
-      await Slash.sendMessage(m.chat, {
+      await conn.sendMessage(m.chat, {
         audio: { url: download },
         mimetype: 'audio/mpeg',
         fileName: `${title} - ${artist}.mp3`, // Nama file agar lebih rapi
@@ -1784,7 +1786,7 @@ case 'repo': { // Anda bisa gunakan 'repo' sebagai alias atau perintah terpisah
 Mengirim file ZIP repositori...`;
 
             // Kirim pesan dengan informasi dan URL download
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 text: caption,
                 contextInfo: {
                     externalAdReply: {
@@ -1800,7 +1802,7 @@ Mengirim file ZIP repositori...`;
 
             // Kirim file ZIP-nya
             // Menggunakan dokumen karena ini adalah file ZIP
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 document: { url: download_url },
                 fileName: filename,
                 mimetype: 'application/zip',
@@ -1834,7 +1836,7 @@ case 'randommeme': { // Anda bisa gunakan 'randommeme' sebagai alias atau perint
             const { title, imgUrl } = randomMeme;
 
             // Kirim meme sebagai gambar
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 image: { url: imgUrl },
                 caption: `"${title}"` // Menggunakan judul meme sebagai caption
             }, { quoted: m });
@@ -1863,7 +1865,7 @@ case 'tiktoksearch': { // Anda bisa gunakan 'tiktoksearch' sebagai alias atau pe
             const { title, video_url } = response;
 
             // Kirim video TikTok
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 video: { url: video_url },
                 caption: `Video TikTok Ditemukan:\n\nTitle: ${title || 'Tidak ada judul'}`
             }, { quoted: m });
@@ -1903,7 +1905,7 @@ case 'npms': { // Anda bisa gunakan 'npm' sebagai alias atau perintah terpisah
             }
             replyMessage += `└───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Tidak ada paket NPM ditemukan untuk "${text}" atau terjadi kesalahan.`);
@@ -1940,7 +1942,7 @@ case 'pinterest': { // Anda bisa gunakan 'pinterest' sebagai alias atau perintah
 └───────────────`;
 
             // Kirim gambar
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 image: { url: image },
                 caption: imageCaption
             }, { quoted: m });
@@ -1982,7 +1984,7 @@ case 'sps': { // Anda bisa gunakan 'sps' sebagai alias atau perintah terpisah
             replyMessage += `└───────────────
 Untuk mengunduh lagu, gunakan perintah !spotifydl <link_lagu_dari_hasil_pencarian>`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Tidak ada lagu ditemukan di Spotify untuk "${text}" atau terjadi kesalahan.`);
@@ -2022,7 +2024,7 @@ case 'spplay': { // Anda bisa gunakan 'spplay' sebagai alias atau perintah terpi
 └───────────────`;
 
         // Kirim informasi lagu dengan thumbnail terlebih dahulu
-        await Slash.sendMessage(m.chat, {
+        await conn.sendMessage(m.chat, {
             image: { url: image }, // Menggunakan thumbnail dari Spotify
             caption: capt,
             contextInfo: {
@@ -2047,7 +2049,7 @@ case 'spplay': { // Anda bisa gunakan 'spplay' sebagai alias atau perintah terpi
         const downloadData = await downloadRes.json();
 
         if (downloadData.status && downloadData.result && downloadData.result.download) {
-            await Slash.sendMessage(m.chat, {
+            await conn.sendMessage(m.chat, {
                 audio: { url: downloadData.result.download },
                 mimetype: 'audio/mpeg',
                 fileName: `${title} - ${artists}.mp3`, // Nama file agar lebih rapi
@@ -2099,7 +2101,7 @@ case 'groups': { // Anda bisa gunakan 'groups' sebagai alias atau perintah terpi
             replyMessage += `└───────────────
 *Catatan:* Beberapa link grup mungkin sudah tidak aktif.`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Tidak ada grup WhatsApp ditemukan untuk "${text}" atau terjadi kesalahan.`);
@@ -2146,7 +2148,7 @@ case 'gis': {
 │ 🔗 Detail URL   : ${detail_url}
 └─────────────────────`;
 
-            await Slash.sendMessage(m.chat, { text: caption }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: caption }, { quoted: m });
         } else {
             m.reply(`⚠️ Tidak dapat menemukan informasi untuk UID "${uid}". Pastikan UID benar atau coba beberapa saat lagi.`);
         }
@@ -2185,13 +2187,13 @@ case 'ghs': { // Anda bisa gunakan 'ghs' sebagai alias atau perintah terpisah
 
             // Kirim avatar dan caption
             if (avatar) {
-                await Slash.sendMessage(m.chat, {
+                await conn.sendMessage(m.chat, {
                     image: { url: avatar },
                     caption: caption
                 }, { quoted: m });
             } else {
                 // Jika tidak ada avatar, kirim pesan teks saja
-                await Slash.sendMessage(m.chat, { text: caption }, { quoted: m });
+                await conn.sendMessage(m.chat, { text: caption }, { quoted: m });
             }
 
         } else {
@@ -2213,7 +2215,7 @@ case 'gibuild': {
     let url = `https://api.alfixd.my.id/api/genshinbuild?q=${encodeURIComponent(query)}`;
 
     try {
-        await Slash.sendMessage(m.chat, {
+        await conn.sendMessage(m.chat, {
             image: { url }, // langsung pakai URL dari API
             caption: `✨ Build untuk karakter: ${query}`
         }, { quoted: m });
@@ -2298,7 +2300,7 @@ case 'weather': { // Anda bisa gunakan 'weather' sebagai alias atau perintah ter
 │ Tekanan     : ${tekanan}
 └───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Tidak dapat menemukan informasi cuaca untuk "${kota}" atau terjadi kesalahan pada API.`);
@@ -2319,7 +2321,7 @@ case 'qr': {
     let url = `https://api.alfixd.my.id/api/qrcodegenerator?text=${encodeURIComponent(queryText)}`;
     try {
         // Langsung kirim gambar QR code dengan URL (tanpa buffer)
-        await Slash.sendMessage(m.chat, {
+        await conn.sendMessage(m.chat, {
             image: { url }, // langsung pakai URL API
             caption: `Code QR untuk: ${queryText}`
         }, { quoted: m });
@@ -2368,7 +2370,7 @@ case 'vcc': { // Anda bisa gunakan 'vcc' sebagai alias atau perintah terpisah
             });
             replyMessage += `└───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Gagal menghasilkan VCC tipe "${cardType}" atau terjadi kesalahan pada API.`);
@@ -2396,7 +2398,7 @@ case 'tkp': {
 │ ${fact}
 └───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
         } else {
             m.reply('⚠️ Gagal mendapatkan fakta "Tahukah Kamu?" atau terjadi kesalahan pada API.');
         }
@@ -2429,7 +2431,7 @@ case 'khodam': { // Anda bisa gunakan 'khodam' sebagai alias atau perintah terpi
 │ Hasil: ${khodamResult}
 └───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Gagal mengecek khodam untuk "${nama}" atau terjadi kesalahan pada API.`);
@@ -2465,7 +2467,7 @@ case 'news': { // Anda bisa gunakan 'news' sebagai alias atau perintah terpisah
             }
             replyMessage += `└───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Gagal mengambil berita dari DetikNews atau tidak ada berita ditemukan.`);
@@ -2503,7 +2505,7 @@ case 'kompas': { // Anda bisa gunakan 'kompas' sebagai alias atau perintah terpi
             }
             replyMessage += `└───────────────`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Gagal mengambil berita dari Kompas.com atau tidak ada berita ditemukan.`);
@@ -2546,7 +2548,7 @@ case 'yts': { // Anda bisa gunakan 'yts' sebagai alias atau perintah terpisah
 Untuk mengunduh video, gunakan perintah !ytmp4 <link_video>
 Untuk mengunduh audio, gunakan perintah !ytmp3 <link_video>`;
 
-            await Slash.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: replyMessage }, { quoted: m });
 
         } else {
             m.reply(`Tidak ada video YouTube ditemukan untuk "${query}" atau terjadi kesalahan.`);
@@ -2562,7 +2564,7 @@ case 'wm': {
 	let satu = ahuh[0] !== '' ? ahuh[0] : `yoy`
 	let dua = typeof ahuh[1] !== 'undefined' ? ahuh[1] : ``
 	let { Sticker, createSticker, StickerTypes } = require('wa-sticker-formatter')
-	let media = await Slash.downloadAndSaveMediaMessage(quoted)
+	let media = await conn.downloadAndSaveMediaMessage(quoted)
 	let jancok = new Sticker(media, {
 		pack: satu, // The pack name
 		author: dua, // The author name
@@ -2575,7 +2577,7 @@ case 'wm': {
 	let stok = "temp_sticker.webp" // Nama file tetap
 	let nono = await jancok.toFile(stok)
 	let nah = fs.readFileSync(nono)
-	await Slash.sendMessage(from, { sticker: nah }, { quoted: m })
+	await conn.sendMessage(from, { sticker: nah }, { quoted: m })
 	await fs.unlinkSync(stok)
 	await fs.unlinkSync(media)
 }
@@ -2586,7 +2588,7 @@ case 'smeme': {
     if (!text) return m.reply(`Usage: ${prefix + command} text1|text2`);
     let atas = text.split('|')[0] ? text.split('|')[0] : '-';
     let bawah = text.split('|')[1] ? text.split('|')[1] : '-';
-    let mediaPath = await Slash.downloadAndSaveMediaMessage(quoted);
+    let mediaPath = await conn.downloadAndSaveMediaMessage(quoted);
 
     // Inline fungsi uploadUguu
     const uploadUguu = async filePath => {
@@ -2609,7 +2611,7 @@ case 'smeme': {
     try {
       let mem = await uploadUguu(mediaPath);
       let meme = `https://api.memegen.link/images/custom/${encodeURIComponent(atas)}/${encodeURIComponent(bawah)}.png?background=${mem}`;
-      await Slash.sendImageAsSticker(m.chat, meme, m, { packname: global.packname, author: global.author });
+      await conn.sendImageAsSticker(m.chat, meme, m, { packname: global.packname, author: global.author });
     } catch (e) {
       m.reply(e);
     } finally {
@@ -2630,7 +2632,7 @@ case 'removebg': {
 
     try {
         // Download gambar lokal
-        const localFile = await Slash.downloadAndSaveMediaMessage(quoted);
+        const localFile = await conn.downloadAndSaveMediaMessage(quoted);
         
         // Upload ke Uguu untuk mendapatkan URL
         const { exec } = require('child_process');
@@ -2658,7 +2660,7 @@ case 'removebg': {
         const outputFile = localFile.replace(/(\.\w+)$/, '_no_bg.png');
         fs.writeFileSync(outputFile, response.data);
 
-        await Slash.sendMessage(m.chat, { image: fs.readFileSync(outputFile), caption: 'Background removed!' }, { quoted: m });
+        await conn.sendMessage(m.chat, { image: fs.readFileSync(outputFile), caption: 'Background removed!' }, { quoted: m });
 
         fs.unlinkSync(localFile);
         fs.unlinkSync(outputFile);
@@ -2692,17 +2694,17 @@ case 'get': {
             const textData = Buffer.from(gt.data, 'binary').toString('utf8');
             return m.reply(textData);
         } else if (text.includes('webp')) {
-            return Slash.sendMessage(m.chat, { sticker: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { sticker: { url: text }}, { quoted: m });
         } else if (/image/i.test(contentType)) {
-            return Slash.sendMessage(m.chat, { image: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { image: { url: text }}, { quoted: m });
         } else if (/video/i.test(contentType)) {
-            return Slash.sendMessage(m.chat, { video: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { video: { url: text }}, { quoted: m });
         } else if (/audio/i.test(contentType) || text.includes(".mp3")) {
-            return Slash.sendMessage(m.chat, { audio: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { audio: { url: text }}, { quoted: m });
         } else if (/application\/zip/i.test(contentType) || /application\/x-zip-compressed/i.test(contentType)) {
-            return Slash.sendMessage(m.chat, { document: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { document: { url: text }}, { quoted: m });
         } else if (/application\/pdf/i.test(contentType)) {
-            return Slash.sendMessage(m.chat, { document: { url: text }}, { quoted: m });
+            return conn.sendMessage(m.chat, { document: { url: text }}, { quoted: m });
         } else {
             return m.reply(`MIME : ${contentType}\n\n${gt.data}`);
         }
@@ -2717,10 +2719,10 @@ case 'ssweb': {
 				if (!text) return reply(`Example: ${command} https://`)
 				if (!text.startsWith('http')) {
 					let buf = 'https://image.thum.io/get/width/1900/crop/1000/fullpage/https://' + q;
-					await Slash.sendMessage(m.chat, { image: { url: buf }, caption: 'Berhasil' }, { quoted: m })
+					await conn.sendMessage(m.chat, { image: { url: buf }, caption: 'Berhasil' }, { quoted: m })
 				} else {
 					let buf = 'https://image.thum.io/get/width/1900/crop/1000/fullpage/' + q;
-					await Slash.sendMessage(m.chat, { image: { url: buf }, caption: 'Berhasil' }, { quoted: m })
+					await conn.sendMessage(m.chat, { image: { url: buf }, caption: 'Berhasil' }, { quoted: m })
 				}
 			}
 			break
@@ -2737,7 +2739,7 @@ case 'uploadcatbox': case 'tourl': {
         if ((/image|video/.test(mime)) && !/webp/.test(mime)) {
 
             // Unduh dan simpan media
-            let media = await Slash.downloadAndSaveMediaMessage(qmsg);
+            let media = await conn.downloadAndSaveMediaMessage(qmsg);
             if (!media) return m.reply('⚠️ Gagal mengunduh media.');
 
             // Hitung ukuran file
@@ -2772,7 +2774,7 @@ case 'uploadcatbox': case 'tourl': {
             // Buat caption hasil upload
             let caption = `✅ File berhasil diunggah ke Catbox:\n\n🔗 URL: ${url}\n📦 Ukuran: ${fileSize}`;
 
-            await Slash.sendMessage(m.chat, { text: caption }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: caption }, { quoted: m });
 
             // Hapus file lokal setelah upload
             fs.unlinkSync(media);
@@ -2829,7 +2831,7 @@ case 'tourl2': {
         if (!targetMsg) return m.reply('⚠️ Kirim gambar/video (bukan webp) atau reply media dengan perintah ini.');
 
         // Download media
-        const buffer = await Slash.downloadMediaMessage(targetMsg);
+        const buffer = await conn.downloadMediaMessage(targetMsg);
         if (!buffer) return m.reply('⚠️ Gagal mengunduh media.');
 
         // Fungsi upload inline
@@ -2865,7 +2867,7 @@ case 'tourl2': {
         const url = await alfixdRaw(buffer, `file.${ext}`);
 
         if (url) {
-            await Slash.sendMessage(m.chat, { text: `✅ File berhasil diupload:\n${url}` }, { quoted: m });
+            await conn.sendMessage(m.chat, { text: `✅ File berhasil diupload:\n${url}` }, { quoted: m });
         } else {
             m.reply('❌ Gagal mendapatkan URL hasil upload.');
         }
@@ -2880,7 +2882,7 @@ case'ceklinkgc':{
     const iidgc = budy.match('@g.us')
     if(!iidgc)return m.reply(`Sertakan IdGroup Dengan Benar\nExample : ${prefix + command} 120.......@g.us`)
     try{
-    const gc = "https://chat.whatsapp.com/" + await Slash.groupInviteCode(text)
+    const gc = "https://chat.whatsapp.com/" + await conn.groupInviteCode(text)
 await m.reply(`${gc}`)
         }catch(e){
             m.reply('IdGroup Tidak Valid!!')
@@ -2899,18 +2901,17 @@ let media = await downloadContentFromMessage(msg[type], type == 'imageMessage' ?
         buffer = Buffer.concat([buffer, chunk])
     }
     if (/video/.test(type)) {
-        return Slash.sendMessage(m.chat, {video: buffer, caption: "Done ✅"}, {quoted: m})
+        return conn.sendMessage(m.chat, {video: buffer, caption: "Done ✅"}, {quoted: m})
     } else if (/image/.test(type)) {
-        return Slash.sendMessage(m.chat, {image: buffer, caption: "Done ✅"}, {quoted: m})
+        return conn.sendMessage(m.chat, {image: buffer, caption: "Done ✅"}, {quoted: m})
     } else if (/audio/.test(type)) {
-        return Slash.sendMessage(m.chat, {audio: buffer, mimetype: "audio/mpeg", ptt: true}, {quoted: m})
+        return conn.sendMessage(m.chat, {audio: buffer, mimetype: "audio/mpeg", ptt: true}, {quoted: m})
     } 
 }
 break
 
 case "backupsc":{
 if (!isOwner) return m.reply(msg.owner)
-if (!m.isBaileys) return m.reply("ngapain bang")
 m.reply(msg.wait)
  const { execSync } = require("child_process");
  const ls = (await execSync("ls"))
@@ -2923,7 +2924,7 @@ pe != ".npm" &&
 pe != ""
 );
  const exec = await execSync(`zip -r New.zip ${ls.join(" ")}`);
- await Slash.sendMessage(m?.chat,
+ await conn.sendMessage(m?.chat,
 {
  document: await fs.readFileSync("./New.zip"),
  mimetype: "application/zip",
@@ -2965,7 +2966,7 @@ case 'txt2img': {
     let imageUrl = await generateImage(text)
     if (!imageUrl) return m.reply("gagal membuat gambarnya coba ganti prompt nya")
 
-    await Slash.sendMessage(m.chat, {
+    await conn.sendMessage(m.chat, {
         image: {
             url: imageUrl
         },
@@ -2983,7 +2984,7 @@ case 'ocr': {
     const FormData = require('form-data');
     const fs = require('fs');
 
-    const genAI = new GoogleGenerativeAI(''); // isi api gemini
+    const genAI = new GoogleGenerativeAI('AIzaSyA6M9JsIsaP76MZm2NZheWQkPIDJ01Koic');
     const model = genAI.getGenerativeModel({
         model: 'gemini-1.5-flash'
     });
@@ -3041,7 +3042,7 @@ case 'ocr': {
             return m.reply('Maaf, kirim atau reply gambar untuk OCR!');
         }
 
-        const mediaPath = await Slash.downloadAndSaveMediaMessage(qmsg);
+        const mediaPath = await conn.downloadAndSaveMediaMessage(qmsg);
 
         // Baca file secara benar
         const imageBuffer = fs.readFileSync(mediaPath);
@@ -3084,13 +3085,96 @@ case 'ocr': {
 }
 break;
 
+case 'totag':
+if (!isGroup) return m.reply(msg.group)
+if (!isBotAdmin) return m.reply(msg.adminbot)
+if (!isAdmin && !isOwner) return m.reply(msg.admin)
+ if (!m.quoted) return reply(`Reply media with caption ${command}`)
+ conn.sendMessage(m.chat, {
+ forward: m.quoted.fakeObj,
+ mentions: groupMetadata.participants.map(a => a.id)
+ })
+ break
+ 
+case "grep": {
+const util = require("util");
+const exec = require("child_process").exec;
+const execPromise = util.promisify(exec);
+
+    if (!isOwner) return m.reply(msg.owner);
+    const text =
+        args.join(" ") ||
+        m.quoted?.text ||
+        m.quoted?.caption ||
+        m.quoted?.description;
+
+    if (!text) {
+        return m.reply(`*• Example :* ${command} [text yang ingin dicari]`);
+    }
+
+    const folderPath = "./";
+    const safeText = text.replace(/(["'$`\\])/g, '\\$1');
+    const commandStr = `grep -rnw '${folderPath}' -e '${safeText}' --include='*.js' --exclude-dir='node_modules' --color=never`;
+
+    m.reply(msg.wait);
+    try {
+        const { stdout, stderr } = await execPromise(commandStr);
+        if (stderr) throw new Error(stderr);
+
+        const lines = stdout.split("\n").filter(Boolean);
+        if (lines.length === 0) {
+            await m.reply("No matches found.");
+            return;
+        }
+
+        const resultsText = lines
+            .map((line, index) => {
+                const match = line.match(/^(.*?):(\d+):(.+)$/);
+                if (!match) {
+                    return `*• GREP RESULT ${index + 1} :*\n\n• *Content:* \`${line.trim()}\``;
+                }
+                const [, path, lineNum, content] = match;
+                return `*• Result :* ${index + 1}\n\n*• Line :* ${lineNum}\n*• Content:* \`${content.trim()}\`\n*• Path:* ${path}`;
+            })
+            .join("\n________________________\n");
+
+        const resultMessage = `*• Request :* ${text}
+
+${resultsText}\n\n*• Total Result :* ${lines.length}\n`;
+        m.reply(resultMessage);
+
+    } catch (e) {
+        console.error(e);
+        m.reply(`Terjadi kesalahan saat menjalankan pencarian:\n\n${e.message}`);
+    }
+}
+break;
+
+case 'sc': {
+let url = 'https://github.com/Fiisya/Slash-MD'
+
+await conn.sendMessage(m.chat, {
+        text: url,
+        footer: "© 2025 Slash Md",
+        interactive: [{
+            name: 'automated_greeting_message_view_catalog',
+            buttonParamsJson: JSON.stringify({
+                business_phone_number: '62895322391225'
+            })
+        }]
+    });
+}
+break
+ 
+
+
 	
 default:
 if (budy.startsWith('$')) {
 if (!isOwner) return
 exec(budy.slice(2), (err, stdout) => {
-if(err) return Slash.sendMessage(m.chat, {text: err.toString()}, {quoted: m})
-if (stdout) return Slash.sendMessage(m.chat, {text: util.format(stdout)}, {quoted: m})
+if(err) return conn.sendMessage(m.chat, {text: err.toString()}, {quoted: m})
+if (stdout) return conn.sendMessage(m.chat, {text: util.format(stdout)}, {quoted: m})
 })}
 
 if (budy.startsWith(">")) {
@@ -3098,18 +3182,18 @@ if (!isOwner) return
 try {
 let evaled = await eval(text)
 if (typeof evaled !== 'string') evaled = util.inspect(evaled)
-Slash.sendMessage(m.chat, {text: util.format(evaled)}, {quoted: m})
+conn.sendMessage(m.chat, {text: util.format(evaled)}, {quoted: m})
 } catch (e) {
-Slash.sendMessage(m.chat, {text: util.format(e)}, {quoted: m})
+conn.sendMessage(m.chat, {text: util.format(e)}, {quoted: m})
 }}
 
 if (budy.startsWith("=>")) {
 if (!isOwner) return
 try {
 const evaling = await eval(`;(async () => { ${text} })();`);
-return Slash.sendMessage(m.chat, {text: util.format(evaling)}, {quoted: m})
+return conn.sendMessage(m.chat, {text: util.format(evaling)}, {quoted: m})
 } catch (e) {
-return Slash.sendMessage(m.chat, {text: util.format(e)}, {quoted: m})
+return conn.sendMessage(m.chat, {text: util.format(e)}, {quoted: m})
 }}
 
 }}
