@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "@adiwajshing/keyed-db": "^0.2.4",
+    "@google/generative-ai": "^0.24.1",
     "@vreden/meta": "^9.1.9",
     "api-dylux": "^1.8.4",
     "awesome-phonenumber": "^2.64.0",
