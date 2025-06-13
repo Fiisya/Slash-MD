@@ -492,24 +492,24 @@ is a WhatsApp bot built with NodeJS and the Baileys library, designed to enhance
  forwardingScore: 99999,
  externalAdReply: {
  showAdAttribution: true,
- title: `${namabot}`,
+ title: `${namabot} - ${version}`,
  mediaType: 1,
  previewType: 1,
  body: `Haikal Here`,
- thumbnailUrl: 'https://raw.githubusercontent.com/Fiisya/uploads/main/uploads/1748584045926.jpeg',
+ thumbnailUrl: 'https://raw.githubusercontent.com/Fiisya/uploads/main/uploads/1749751232846.jpeg',
  renderLargerThumbnail: true,
  sourceUrl: global.linkyt
  },
  forwardedNewsletterMessageInfo: {
  newsletterJid: '120363399894937264@newsletter',
  serverMessageId: -1,
- newsletterName: `Powered By: ${namaowner}`,
+ newsletterName: `${namabot} </> - Runtime ${runtime(process.uptime())}`,
  }
  }
  };
  await conn.sendMessage(m.chat, alpiii, { quoted: m });
 }
-break;
+break ;
 
 case "brat": {          
           const quo = args.length >= 1 ? args.join(" ") : m.quoted?.text || m.quoted?.caption || m.quoted?.description || null;
@@ -2638,7 +2638,7 @@ case 'removebg': {
         const { exec } = require('child_process');
         async function uploadUguu(filePath) {
             return new Promise((resolve, reject) => {
-                exec(`curl -s -F files[]=@${filePath} https://uguu.se/upload.php`, (err, stdout) => {
+                exec(`curl -s -F files[]=@${filePath} ht.tps://uguu.se/upload.php`, (err, stdout) => {
                     if (err) return reject('Gagal mengunggah ke Uguu.');
                     try {
                         const json = JSON.parse(stdout);
@@ -2984,7 +2984,7 @@ case 'ocr': {
     const FormData = require('form-data');
     const fs = require('fs');
 
-    const genAI = new GoogleGenerativeAI('AIzaSyA6M9JsIsaP76MZm2NZheWQkPIDJ01Koic');
+    const genAI = new GoogleGenerativeAI('Your_apikey');
     const model = genAI.getGenerativeModel({
         model: 'gemini-1.5-flash'
     });
@@ -3166,7 +3166,19 @@ await conn.sendMessage(m.chat, {
 }
 break
  
-
+case 'nulis': {
+if (!text)  m.reply(example('salman jomok'))
+    let kertas = `https://api.alfixd.my.id/api/nulis?text=${text}`
+    await conn.sendMessage(m.chat, {
+        image: {
+            url: kertas
+        },
+        caption: `berhasil menulis!\n ${text}`
+    }, {
+        quoted: m
+    })
+}
+break
 
 	
 default:
